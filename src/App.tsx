@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Heart, BookOpen, Coffee, Star, X, Sparkles, User, HelpCircle } from 'lucide-react';
 import Navbar from './components/Navbar';
+import AlfonsaChat from './components/AlfonsaChat';
 import Footer from './components/Footer';
 import HomePage from './components/HomePage';
 import SearchPage from './components/SearchPage';
@@ -139,6 +140,8 @@ export default function App() {
         setCurrentPage={setCurrentPage}
         onProfileClick={() => setShowProfileModal(true)}
       />
+
+      <AlfonsaChat />
 
       {/* Primary viewport content */}
       <main className="flex-grow pt-8 pb-20 md:pb-8">
