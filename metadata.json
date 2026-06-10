@@ -1,0 +1,6 @@
+{
+  "name": "Vale",
+  "description": "Un rifugio letterario e santuario per il lettore silenzioso, creato appositamente con dolcezza, armonia e cura per Valentina.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

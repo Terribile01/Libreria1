@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --color-primary: #53624f;
+  --color-secondary: #7c5454;
+  --color-tertiary: #615e57;
+  --color-surface: #fbf9f6;
+  --color-surface-dim: #dbdad7;
+  --color-surface-bright: #fbf9f6;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f5f3f0;
+  --color-surface-container: #f0eeea;
+  --color-surface-container-high: #eae8e5;
+  --color-surface-container-highest: #e4e2df;
+  --color-on-surface: #1b1c1a;
+  --color-on-surface-variant: #444841;
+  --color-primary-container: #8a9a84;
+  --color-on-primary-container: #243221;
+  --color-secondary-container: #ffcaca;
+  --color-on-secondary-container: #7b5353;
+  --color-primary-fixed: #d7e7cf;
+  --color-primary-fixed-dim: #bbcbb3;
+  --color-on-primary-fixed: #121f10;
+  --color-on-primary-fixed-variant: #3c4b38;
+}
+
+body {
+  background-color: #fbf9f6; /* Tertiary Cream background */
+  color: #1b1c1a;
+  font-family: "Source Sans 3", system-ui, sans-serif;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.notebook-line {
+  background-image: linear-gradient(#e4e2df 1px, transparent 1px);
+  background-size: 100% 2.3rem;
+  line-height: 2.3rem;
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #fbf9f6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4c8bf;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aab0a3;
+}
+
+.book-shadow {
+  box-shadow: 0 15px 35px rgba(83, 98, 79, 0.12);
+}
+
+.player-shadow {
+  box-shadow: 0 20px 40px rgba(83, 98, 79, 0.05);
+}
+
+.soft-glow-hover {
+  transition: all 0.3s ease-in-out;
+}
+
+.soft-glow-hover:hover {
+  box-shadow: 0 10px 30px -5px rgba(83, 98, 79, 0.1);
+  transform: translateY(-2px);
+}
+
