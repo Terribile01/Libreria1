@@ -48,24 +48,43 @@ export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus, onA
 
     setIsSearching(true);
     try {
-      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=10`);
-      const data = await response.json();
+      // Parallel fetch from Open Library and Gutendex (Project Gutenberg)
+      const [olRes, gutRes] = await Promise.all([
+        fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=10`),
+        fetch(`https://gutendex.com/books/?search=${encodeURIComponent(searchQuery)}`)
+      ]);
 
-      const openLibraryBooks: Book[] = data.docs.map((doc: any) => ({
+      const olData = await olRes.json();
+      const gutData = await gutRes.json();
+
+      const openLibraryBooks: Book[] = (olData.docs || []).map((doc: any) => ({
         id: `ol-${doc.key.split('/').pop()}`,
         title: doc.title,
         author: doc.author_name?.[0] || 'Autore Sconosciuto',
         coverUrl: doc.cover_i
           ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
           : 'https://images.unsplash.com/photo-1543005187-9f734ad2be65?auto=format&fit=crop&q=80&w=340&h=510',
-        category: 'Romanzi', // Default category
-        description: doc.first_sentence?.[0] || 'Nessuna descrizione disponibile per quest\'opera.',
-        status: 'Da Leggere'
+        category: 'Romanzi',
+        description: doc.first_sentence?.[0] || 'Un classico senza tempo disponibile per la tua lettura.',
+        status: 'Da Leggere',
+        externalUrl: `https://openlibrary.org${doc.key}`
       }));
 
-      setSearchResults(openLibraryBooks);
+      const guttenbergBooks: Book[] = (gutData.results || []).map((doc: any) => ({
+        id: `gut-${doc.id}`,
+        title: doc.title,
+        author: doc.authors?.[0]?.name || 'Autore Classico',
+        coverUrl: doc.formats['image/jpeg'] || 'https://images.unsplash.com/photo-1589998059171-988d887df646?auto=format&fit=crop&q=80&w=340&h=510',
+        category: 'Classici',
+        description: 'Opera di pubblico dominio dal Progetto Gutenberg. Disponibile integralmente.',
+        status: 'Da Leggere',
+        extraLabel: 'GUTENBERG',
+        externalUrl: doc.formats['text/html'] || `https://www.gutenberg.org/ebooks/${doc.id}`
+      }));
+
+      setSearchResults([...openLibraryBooks, ...guttenbergBooks]);
     } catch (error) {
-      console.error('Error fetching from Open Library:', error);
+      console.error('Error fetching from libraries:', error);
     } finally {
       setIsSearching(false);
     }
@@ -514,7 +533,20 @@ export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus, onA
                 </div>
 
                 <div className="border-t border-surface-container-high pt-5 space-y-4">
-                  <h4 className="font-serif text-base text-on-surface font-semibold">Trama & Estratto</h4>
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-serif text-base text-on-surface font-semibold">Trama & Estratto</h4>
+                    {selectedBookDetail.externalUrl && (
+                      <a
+                        href={selectedBookDetail.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-sans font-bold text-primary hover:underline flex items-center gap-1"
+                      >
+                        Leggi Opera Completa
+                        <ArrowRight className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
                   <p className="font-sans text-sm text-on-surface-variant/80 leading-relaxed italic">
                     {selectedBookDetail.description}
                   </p>

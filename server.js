@@ -10,8 +10,18 @@ app.use(express.json());
 
 const GROQ_API_KEY = process.env.LIBRERIA_API_KEY;
 
+if (!GROQ_API_KEY) {
+  console.error('ATTENZIONE: LIBRERIA_API_KEY non è configurata!');
+} else {
+  console.log('LIBRERIA_API_KEY configurata (lunghezza: ' + GROQ_API_KEY.length + ')');
+}
+
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
+
+  if (!GROQ_API_KEY) {
+    return res.status(500).json({ error: 'Configurazione API Key mancante nel server.' });
+  }
 
   try {
     console.log('Sending request to Groq...');
@@ -34,20 +44,21 @@ app.post('/api/chat', async (req, res) => {
     });
 
     const data = await response.json();
-    console.log('Groq response received');
-    if (data.error) {
-      console.error('Groq API Error:', data.error);
-      res.status(500).json({ error: data.error.message });
-    } else {
-      res.json(data);
+    console.log('Groq response status:', response.status);
+
+    if (!response.ok) {
+      console.error('Groq API Error:', data);
+      return res.status(response.status).json({ error: data.error?.message || 'Errore API Groq' });
     }
+
+    res.json(data);
   } catch (error) {
     console.error('Error calling Groq API:', error);
-    res.status(500).json({ error: 'Failed to fetch from Groq' });
+    res.status(500).json({ error: 'Errore di connessione al servizio AI.' });
   }
 });
 
 const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend server running on http://0.0.0.0:${PORT}`);
 });
