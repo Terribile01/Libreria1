@@ -8,10 +8,13 @@ interface SearchPageProps {
   books: Book[];
   onPlayTrack: (bookTitle: string) => void;
   onUpdateBookStatus: (bookId: string, status: Book['status']) => void;
+  onAddBook: (book: Omit<Book, 'id'>) => void;
 }
 
-export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus }: SearchPageProps) {
+export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus, onAddBook }: SearchPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'Tutti' | 'Classici' | 'Poesia' | 'Romanzi' | 'Filosofia'>('Tutti');
   const [selectedBookDetail, setSelectedBookDetail] = useState<Book | null>(null);
 
@@ -23,6 +26,8 @@ export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus }: S
 
   // Filter existing library books
   const filteredBooks = useMemo(() => {
+    if (searchResults.length > 0) return searchResults;
+
     return books.filter((book) => {
       const matchSearch = 
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -30,10 +35,41 @@ export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus }: S
         book.description.toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchCategory = selectedCategory === 'Tutti' || book.category === selectedCategory;
-      // Skip showing Dolci Consigli inside main catalog unless helpful
       return matchSearch && matchCategory;
     });
-  }, [books, searchQuery, selectedCategory]);
+  }, [books, searchQuery, selectedCategory, searchResults]);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=10`);
+      const data = await response.json();
+
+      const openLibraryBooks: Book[] = data.docs.map((doc: any) => ({
+        id: `ol-${doc.key.split('/').pop()}`,
+        title: doc.title,
+        author: doc.author_name?.[0] || 'Autore Sconosciuto',
+        coverUrl: doc.cover_i
+          ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
+          : 'https://images.unsplash.com/photo-1543005187-9f734ad2be65?auto=format&fit=crop&q=80&w=340&h=510',
+        category: 'Romanzi', // Default category
+        description: doc.first_sentence?.[0] || 'Nessuna descrizione disponibile per quest\'opera.',
+        status: 'Da Leggere'
+      }));
+
+      setSearchResults(openLibraryBooks);
+    } catch (error) {
+      console.error('Error fetching from Open Library:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   // Pre-configured soul vibe quotes and matching suggestions
   const VIBES = [
@@ -160,10 +196,10 @@ export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus }: S
       {/* Page Title */}
       <div className="space-y-2 text-center md:text-left">
         <h1 className="font-serif text-3xl md:text-4xl text-on-surface font-semibold">
-          Esplora la Galleria
+          Esplora Nuovi Orizzonti
         </h1>
         <p className="font-sans text-sm text-on-surface-variant/70">
-          Cerca tra i tuoi libri, naviga per categoria o scopri un suggerimento personalizzato per il tuo prossimo viaggio dell'anima.
+          Cerca tra le pagine, lasciati ispirare dalle categorie o scopri il libro perfetto per il tuo stato d'animo.
         </p>
       </div>
 
@@ -179,16 +215,21 @@ export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus }: S
               <label className="font-sans font-semibold text-xs tracking-wider uppercase text-on-surface-variant">
                 Ricerca Libera
               </label>
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <input 
                   type="text" 
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Titolo, autore..."
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (!e.target.value) setSearchResults([]);
+                  }}
+                  placeholder="Cerca un titolo, un autore, un'emozione..."
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-surface-container-high focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-sans text-xs"
                 />
-                <Search className="w-4 h-4 text-on-surface-variant/50 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
+                <button type="submit" className="absolute left-3.5 top-1/2 -translate-y-1/2 cursor-pointer">
+                  <Search className={`w-4 h-4 ${isSearching ? 'animate-pulse text-primary' : 'text-on-surface-variant/50'}`} />
+                </button>
+              </form>
             </div>
 
             {/* Categories */}
@@ -484,24 +525,39 @@ export default function SearchPage({ books, onPlayTrack, onUpdateBookStatus }: S
 
                 {/* Switch actions */}
                 <div className="border-t border-surface-container-high pt-5 flex flex-wrap gap-2 justify-between items-center text-sm">
-                  <span className="text-xs text-on-surface-variant/60 font-semibold">Sposta di scaffale:</span>
+                  <span className="text-xs text-on-surface-variant/60 font-semibold">Gestisci Libreria:</span>
                   <div className="flex gap-2">
-                    {(['Preferiti', 'Letti', 'Da Leggere'] as const).map((status) => (
+                    {books.some(b => b.title === selectedBookDetail.title) ? (
+                      (['Preferiti', 'Letti', 'Da Leggere'] as const).map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => {
+                            const existingBook = books.find(b => b.title === selectedBookDetail.title);
+                            if (existingBook) {
+                              onUpdateBookStatus(existingBook.id, status);
+                              setSelectedBookDetail(prev => prev ? { ...prev, status } : null);
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${
+                            (books.find(b => b.title === selectedBookDetail.title)?.status || 'Da Leggere') === status
+                              ? 'bg-primary text-white'
+                              : 'bg-white hover:bg-surface-container border border-surface-container-high text-on-surface-variant'
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      ))
+                    ) : (
                       <button
-                        key={status}
                         onClick={() => {
-                          onUpdateBookStatus(selectedBookDetail.id, status);
-                          setSelectedBookDetail(prev => prev ? { ...prev, status } : null);
+                          onAddBook(selectedBookDetail);
+                          alert(`${selectedBookDetail.title} aggiunto alla libreria!`);
                         }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${
-                          selectedBookDetail.status === status
-                            ? 'bg-primary text-white'
-                            : 'bg-white hover:bg-surface-container border border-surface-container-high text-on-surface-variant'
-                        }`}
+                        className="px-6 py-1.5 bg-primary text-white rounded-full text-xs font-semibold cursor-pointer hover:opacity-90"
                       >
-                        {status}
+                        Aggiungi alla Libreria
                       </button>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>

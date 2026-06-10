@@ -104,6 +104,7 @@ export default function App() {
             books={books}
             onPlayTrack={handlePlayTrackByTitle}
             onUpdateBookStatus={handleUpdateBookStatus}
+            onAddBook={handleAddBook}
           />
         );
       case 'library':
