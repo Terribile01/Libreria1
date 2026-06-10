@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Sparkles, Mail, CheckCircle2, Bookmark, Heart, Headset, X } from 'lucide-react';
+import { BookOpen, Sparkles, CheckCircle2, Bookmark, Heart, Headset, X } from 'lucide-react';
 import { Book } from '../types';
 
 interface HomePageProps {
@@ -12,8 +12,6 @@ interface HomePageProps {
 
 export default function HomePage({ books, onPlayTrack, onUpdateBookStatus, onAddBook }: HomePageProps) {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
 
   // Hero Book
   const heroBook: Book = {
@@ -28,16 +26,6 @@ export default function HomePage({ books, onPlayTrack, onUpdateBookStatus, onAdd
 
   // Curated list "Dolci Consigli"
   const curatedBooks = books.filter(b => b.id.startsWith('dc-'));
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setTimeout(() => {
-        setEmail('');
-      }, 3000);
-    }
-  };
 
   const openBookDetails = (book: Book) => {
     setSelectedBook(book);
@@ -91,7 +79,7 @@ export default function HomePage({ books, onPlayTrack, onUpdateBookStatus, onAdd
             <div className="space-y-2">
               <span className="flex items-center gap-2 font-sans font-semibold text-xs tracking-widest text-primary-container uppercase">
                 <Sparkles className="w-3.5 h-3.5 text-primary-container" />
-                Libro del Giorno
+                Un Pensiero per Te
               </span>
               <h1 className="font-serif text-4xl md:text-5xl text-on-surface leading-tight font-medium">
                 {heroBook.title}
@@ -169,71 +157,6 @@ export default function HomePage({ books, onPlayTrack, onUpdateBookStatus, onAdd
               </div>
             </motion.div>
           ))}
-        </div>
-      </section>
-
-      {/* Newsletter / Invitation */}
-      <section className="py-12 max-w-4xl mx-auto text-center">
-        <div className="bg-surface-container-high/45 rounded-3xl p-8 md:p-12 space-y-6 shadow-sm border border-outline-variant/15 relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-2xl" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/5 rounded-full blur-2xl flex items-center justify-center" />
-          
-          <div className="flex justify-center">
-            <span className="p-3 bg-surface rounded-full text-primary shadow-sm">
-              <BookOpen className="w-7 h-7" />
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="font-serif text-2xl md:text-3xl text-on-surface font-medium">
-              Unisciti al Santuario
-            </h2>
-            <p className="font-sans text-sm text-on-surface-variant/80 max-w-md mx-auto leading-relaxed">
-              Iscriviti per ricevere una lettera settimanale con consigli di lettura, pensieri sulla vita contemplativa e aggiornamenti sul nostro rifugio silenzioso.
-            </p>
-          </div>
-
-          <AnimatePresence mode="wait">
-            {!subscribed ? (
-              <motion.form 
-                onSubmit={handleSubscribe}
-                className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto pt-4"
-              >
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="La tua email..."
-                  required
-                  className="flex-1 px-5 py-3 rounded-full bg-surface-bright border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 placeholder:italic font-sans text-sm"
-                />
-                <button 
-                  type="submit"
-                  className="px-8 py-3 bg-primary text-white rounded-full font-sans font-semibold text-sm tracking-wider uppercase hover:opacity-90 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2"
-                >
-                  <Mail className="w-4 h-4" />
-                  Sottoscrivi
-                </button>
-              </motion.form>
-            ) : (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col items-center gap-2 text-primary pt-6"
-              >
-                <CheckCircle2 className="w-10 h-10 stroke-[2.5px]" />
-                <p className="font-sans font-semibold text-base">Benvenuta nel Santuario, Valentina!</p>
-                <p className="font-sans text-xs text-on-surface-variant/70">Ti invieremo presto la nostra prima lettera poetica.</p>
-                <button 
-                  onClick={() => setSubscribed(false)}
-                  className="text-xs text-secondary hover:underline font-semibold mt-2 cursor-pointer"
-                >
-                  Iscrivi un'altra email
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </section>
 

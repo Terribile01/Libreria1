@@ -71,7 +71,7 @@ export default function LibraryPage({
           La Mia Libreria
         </h1>
         <p className="font-sans text-sm text-on-surface-variant/70">
-          Il tuo santuario di lettura personale. Riorganizza i tuoi scaffali, tieni traccia dei progressi o fissa le tue riflessioni nel diario.
+          Il tuo piccolo rifugio tra le pagine. Riorganizza i tuoi tesori, tieni traccia delle storie che ami o fissa i tuoi pensieri nel diario.
         </p>
       </div>
 
@@ -211,7 +211,7 @@ export default function LibraryPage({
           <div className="flex justify-between items-center px-1">
             <span className="font-serif text-xl font-medium text-on-surface flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              Appunti Personali
+              Il Tuo Diario
             </span>
             <button
               onClick={() => setIsAddingNote(true)}

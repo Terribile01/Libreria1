@@ -1,3 +1,5 @@
+import { MessageCircle } from 'lucide-react';
+
 interface FooterProps {
   onNavigate: (page: 'home' | 'search' | 'library' | 'listen') => void;
 }
@@ -20,18 +22,17 @@ export default function Footer({ onNavigate }: FooterProps) {
           >
             Home
           </button>
-          <a href="#contatti" className="hover:text-primary transition-colors">
-            Contatti
-          </a>
-          <a href="#social" className="hover:text-primary transition-colors">
-            Social
-          </a>
-          <a href="#privacy" className="hover:text-primary transition-colors">
-            Privacy Policy
-          </a>
-          <a href="#termini" className="hover:text-primary transition-colors">
-            Termini
-          </a>
+          <button
+            onClick={() => {
+              const url = window.location.href;
+              const text = `Guarda questo spazio di lettura per Vale: ${url}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }}
+            className="flex items-center gap-2 hover:text-primary transition-colors cursor-pointer"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Condividi su WhatsApp
+          </button>
         </nav>
 
         <p className="font-sans text-xs tracking-wide text-on-surface-variant/50 mt-4 italic">
