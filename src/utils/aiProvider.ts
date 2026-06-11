@@ -11,12 +11,13 @@ export const AIProvider = {
     const geminiKey = ApiKeyManager.get('GEMINI_API_KEY');
     const groqKey = ApiKeyManager.get('GROQ_API_KEY');
 
-    if (geminiKey) {
-      return await AIProvider.callGemini(messages, geminiKey);
-    } else if (groqKey) {
+    // Prioritize Groq (Llama) as requested by user
+    if (groqKey) {
       return await AIProvider.callGroq(messages, groqKey);
+    } else if (geminiKey) {
+      return await AIProvider.callGemini(messages, geminiKey);
     } else {
-      throw new Error('Nessuna chiave API configurata per Rù.');
+      throw new Error('Nessuna chiave API configurata per Rù (Groq o Gemini).');
     }
   },
 
@@ -31,7 +32,7 @@ export const AIProvider = {
       parts: [{ text: m.content }]
     }));
 
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
