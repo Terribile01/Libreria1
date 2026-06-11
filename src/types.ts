@@ -5,7 +5,7 @@ export interface Book {
   coverUrl: string;
   category: 'Classici' | 'Poesia' | 'Romanzi' | 'Filosofia';
   description: string;
-  status: 'Preferiti' | 'Letti' | 'Da Leggere';
+  status?: 'Preferiti' | 'Letti' | 'Da Leggere';
   extraLabel?: string; // e.g. "GENNAIO 2024"
   notesCount?: number;
   chapters?: string[];

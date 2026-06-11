@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Heart, BookOpen, Coffee, Star, X, Sparkles, User, HelpCircle } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './components/HomePage';
@@ -8,15 +7,14 @@ import SearchPage from './components/SearchPage';
 import LibraryPage from './components/LibraryPage';
 import ListenPage from './components/ListenPage';
 import PersonalPage from './components/PersonalPage';
-import AlfonsaChat from './components/AlfonsaChat';
+import RuChat from './components/RuChat';
 
-import { INITIAL_BOOKS, INITIAL_AUDIO_TRACKS, INITIAL_NOTES } from './data';
-import { Book, PersonalNote } from './types';
+import { INITIAL_BOOKS, INITIAL_AUDIO_TRACKS } from './data';
+import { Book } from './types';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'library' | 'listen' | 'profile'>('home');
   const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
-  const [notes, setNotes] = useState<PersonalNote[]>(INITIAL_NOTES);
   const [activeTrackId, setActiveTrackId] = useState<string>('at-1');
 
   // Play track navigation shortcut
@@ -32,16 +30,11 @@ export default function App() {
     setCurrentPage('listen');
   };
 
-  // Add Book
+  // Add Book (Still used for Home recommendations for now, but will eventually be Supabase-only)
   const handleAddBook = (newBook: Omit<Book, 'id'>) => {
     const id = `custom-${Date.now()}`;
     const bookWithId: Book = { ...newBook, id };
     setBooks(prev => [bookWithId, ...prev]);
-  };
-
-  // Remove Book
-  const handleRemoveBook = (bookId: string) => {
-    setBooks(prev => prev.filter(b => b.id !== bookId));
   };
 
   // Update Book status
@@ -49,16 +42,10 @@ export default function App() {
     setBooks(prev => {
       const exists = prev.some(b => b.id === bookId);
       if (!exists) {
-        // If it's a dynamic recommendation, push it in!
-        const matchedRec = INITIAL_BOOKS.find(b => b.id === bookId);
-        
-        // Find in Suggerimenti if not in primary books
-        const recCoverPattern = bookId.toLowerCase();
-        const fallbackCover = "https://lh3.googleusercontent.com/aida-public/AB6AXuCgGMy2sillD5zq2-3a-nZV7mxdkPpVrLQAFba2wxE9cQ_Hh3IgAJkC1aQat6CYwtkI66SC-lxHhA_BcbhAiJq_w06tnWsdmOB03ieJCC1PpVrLQAFba2wxE9cQ_Hh3IgAJkC1aQat6CYwtkI66SC-lxHhA_BcbhAiJq_w06tnWsdmOB03ieJCC1PfNFJXI0sDBb9sz6ajkNeSyQpePWx_IZgpqKFZELfwck5ciEhDP7Q32ZPaNShEogqJ_pGuotW4-msDkS2aW6mv3vvfUYuuIlpqzSplY-TTKmSxyWfDBOGuobEqwN-RfVdqN3FOkiUFcZc91LL87YVIHjyQmLdxqlqSFCO";
-        
+        const fallbackCover = "https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300";
         const newBook: Book = {
           id: `rec-${Date.now()}`,
-          title: bookId, // standard name passed
+          title: bookId,
           author: "Curatore del Santuario",
           coverUrl: fallbackCover,
           category: 'Romanzi',
@@ -77,17 +64,6 @@ export default function App() {
     });
   };
 
-  // Add diary note
-  const handleAddNote = (newNote: Omit<PersonalNote, 'id'>) => {
-    const id = `note-${Date.now()}`;
-    setNotes(prev => [{ ...newNote, id }, ...prev]);
-  };
-
-  // Remove diary note
-  const handleRemoveNote = (noteId: string) => {
-    setNotes(prev => prev.filter(n => n.id !== noteId));
-  };
-
   const renderActivePage = () => {
     switch (currentPage) {
       case 'home':
@@ -104,19 +80,11 @@ export default function App() {
           <SearchPage 
             books={books}
             onPlayTrack={handlePlayTrackByTitle}
-            onUpdateBookStatus={handleUpdateBookStatus}
           />
         );
       case 'library':
         return (
-          <LibraryPage 
-            books={books}
-            notes={notes}
-            onUpdateBookStatus={handleUpdateBookStatus}
-            onRemoveBook={handleRemoveBook}
-            onAddNote={handleAddNote}
-            onRemoveNote={handleRemoveNote}
-          />
+          <LibraryPage />
         );
       case 'listen':
         return (
@@ -136,7 +104,7 @@ export default function App() {
               completed: books.filter(b => b.status === 'Letti').length,
               toRead: books.filter(b => b.status === 'Da Leggere').length,
             }}
-            notesCount={notes.length}
+            notesCount={0}
           />
         );
       default:
@@ -146,13 +114,11 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-surface selection:bg-primary-fixed/60 selection:text-primary">
-      {/* Navbar header */}
       <Navbar 
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
       />
 
-      {/* Primary viewport content */}
       <main className="flex-grow pt-8 pb-20 md:pb-8">
         <AnimatePresence mode="wait">
           <motion.div
@@ -167,12 +133,8 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Footer component */}
       <Footer onNavigate={setCurrentPage} />
-
-      {/* Rù Chat Assistant */}
-      <AlfonsaChat />
+      <RuChat />
     </div>
   );
-
 }
