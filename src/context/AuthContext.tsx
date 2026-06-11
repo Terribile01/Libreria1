@@ -25,11 +25,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   securityLog: string[];
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   register: (username: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (username: string, email: string) => { success: boolean; error?: string };
+  deleteUser: (userId: string) => { success: boolean; error?: string };
+  updateUserRole: (userId: string, role: UserAccount['role']) => { success: boolean; error?: string };
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -155,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Login handler
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<{ success: boolean; error?: string }> => {
     addLog(`Tentativo di accesso per l'email: ${email}`);
     
     // Simulate slight loading latency for security to prevent brute force
@@ -179,7 +181,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Login success
     setCurrentUser(matchedUser);
     sessionStorage.setItem('leggo_active_user_id', matchedUser.id);
-    addLog(`SUCCESSO: Login effettuato per @${matchedUser.username}. Token temporaneo emesso.`);
+
+    if (rememberMe) {
+      localStorage.setItem('leggo_remembered_user_id', matchedUser.id);
+      addLog(`SUCCESSO: Login effettuato per @${matchedUser.username}. Opzione 'Ricordami' attiva.`);
+    } else {
+      localStorage.removeItem('leggo_remembered_user_id');
+      addLog(`SUCCESSO: Login effettuato per @${matchedUser.username}. Token temporaneo emesso.`);
+    }
+
     return { success: true };
   };
 
@@ -273,6 +283,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  // Delete a user (Admin only)
+  const deleteUser = (userId: string): { success: boolean; error?: string } => {
+    if (currentUser?.role !== 'Amministratore') return { success: false, error: "Permessi insufficienti." };
+    if (userId === currentUser.id) return { success: false, error: "Non puoi eliminare il tuo stesso account." };
+
+    const users = getUsersFromStorage();
+    const updatedUsers = users.filter(u => u.id !== userId);
+
+    localStorage.setItem('leggo_users', JSON.stringify(updatedUsers));
+    addLog(`UTENTE ELIMINATO: ID ${userId} rimosso dal database.`);
+    return { success: true };
+  };
+
+  // Update a user's role (Admin only)
+  const updateUserRole = (userId: string, role: UserAccount['role']): { success: boolean; error?: string } => {
+    if (currentUser?.role !== 'Amministratore') return { success: false, error: "Permessi insufficienti." };
+
+    const users = getUsersFromStorage();
+    const updatedUsers = users.map(u => {
+      if (u.id === userId) {
+        return { ...u, role };
+      }
+      return u;
+    });
+
+    localStorage.setItem('leggo_users', JSON.stringify(updatedUsers));
+    addLog(`RUOLO AGGIORNATO: Utente ${userId} promosso/demosso a ${role}.`);
+    return { success: true };
+  };
+
   // Change password with verification
   const changePassword = async (oldPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
     if (!currentUser) return { success: false, error: 'Nessun utente autenticato.' };
@@ -326,7 +366,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       register,
       logout,
       changePassword,
-      updateProfile
+      updateProfile,
+      deleteUser,
+      updateUserRole
     }}>
       {children}
     </AuthContext.Provider>

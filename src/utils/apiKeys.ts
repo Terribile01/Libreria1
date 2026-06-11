@@ -111,6 +111,12 @@ export const ApiKeyManager = {
         'DEEPL_API_KEY',
         'Traduzione istantanea di brani e annotazioni.',
         'Consente di tradurre qualsiasi testo o parola difficile in oltre 30 lingue.'
+      ),
+      ApiKeyManager.getDetails(
+        'Groq AI Key',
+        'GROQ_API_KEY',
+        'Motore di inferenza ultra-veloce per la chat Rù.',
+        'Necessario per utilizzare i modelli Llama-3 tramite Groq Cloud.'
       )
     ];
   }
