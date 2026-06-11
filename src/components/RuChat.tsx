@@ -8,7 +8,7 @@ interface Message {
   content: string;
 }
 
-export default function AlfonsaChat() {
+export default function RuChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Benvenuto nel Santuario. Sono Rù, la tua guida letteraria. Come posso aiutarti nella tua ricerca di bellezza e conoscenza oggi?' }
