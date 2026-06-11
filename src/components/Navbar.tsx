@@ -1,9 +1,9 @@
-import { User, BookOpen, Search, Library, Headset, ShieldAlert } from 'lucide-react';
+import { User, BookOpen, Search, Library, Headset, ShieldAlert, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
-  currentPage: 'home' | 'search' | 'library' | 'listen' | 'profile';
-  setCurrentPage: (page: 'home' | 'search' | 'library' | 'listen' | 'profile') => void;
+  currentPage: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile';
+  setCurrentPage: (page: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile') => void;
 }
 
 export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
@@ -13,6 +13,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
     { id: 'home', label: 'Home', icon: BookOpen },
     { id: 'search', label: 'Ricerca', icon: Search },
     { id: 'library', label: 'La Mia Libreria', icon: Library },
+    { id: 'diary', label: 'Diario', icon: FileText },
     { id: 'listen', label: 'Ascolta', icon: Headset },
   ] as const;
 

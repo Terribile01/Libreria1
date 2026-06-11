@@ -22,6 +22,14 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'Tutti' | 'Classici' | 'Poesia' | 'Romanzi' | 'Filosofia'>('Tutti');
   const [selectedBookDetail, setSelectedBookDetail] = useState<ExternalBook | null>(null);
+  const [isAddingManual, setIsAddingManual] = useState(false);
+  const [searchMode, setSearchMode] = useState<'all' | 'liberliber'>('all');
+
+  // Manual form state
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualAuthor, setManualAuthor] = useState('');
+  const [manualCategory, setManualCategory] = useState('Romanzi');
+  const [manualDescription, setManualDescription] = useState('');
 
   // External Search State
   const [externalResults, setExternalResults] = useState<ExternalBook[]>([]);
@@ -54,7 +62,12 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
       if (searchQuery.length >= 3) {
         setIsSearchingExternal(true);
         try {
-          const results = await BookSearchService.unifiedSearch(searchQuery);
+          let results;
+          if (searchMode === 'liberliber') {
+            results = await BookSearchService.searchLiberLiber(searchQuery);
+          } else {
+            results = await BookSearchService.unifiedSearch(searchQuery);
+          }
           setExternalResults(results);
         } catch (error) {
           console.error("Search error:", error);
@@ -67,7 +80,7 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, searchMode]);
 
   const allResults = useMemo(() => {
     // Prioritize external results when searching
@@ -120,6 +133,22 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
 
   const handleAddToLibrary = (recBook: any) => {
     importMutation.mutate(recBook);
+  };
+
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualTitle || !manualAuthor) return;
+    importMutation.mutate({
+      title: manualTitle,
+      author: manualAuthor,
+      category: manualCategory,
+      description: manualDescription,
+      coverUrl: 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300'
+    });
+    setIsAddingManual(false);
+    setManualTitle('');
+    setManualAuthor('');
+    setManualDescription('');
   };
 
   const handleAskRu = async (book: ExternalBook) => {
@@ -263,6 +292,26 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
             </div>
             <div className="space-y-3">
               <span className="font-sans font-semibold text-xs tracking-wider uppercase text-on-surface-variant flex items-center gap-1.5 pb-1 border-b border-surface-container-high">
+                <Globe className="w-3.5 h-3.5 text-primary" /> Sorgente
+              </span>
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  onClick={() => setSearchMode('all')}
+                  className={`px-3 py-2 rounded-lg font-sans text-[10px] font-bold uppercase transition-all ${searchMode === 'all' ? 'bg-primary text-white' : 'bg-surface border text-on-surface-variant'}`}
+                >
+                  Tutti i Cataloghi
+                </button>
+                <button
+                  onClick={() => setSearchMode('liberliber')}
+                  className={`px-3 py-2 rounded-lg font-sans text-[10px] font-bold uppercase transition-all ${searchMode === 'liberliber' ? 'bg-primary text-white' : 'bg-surface border text-on-surface-variant'}`}
+                >
+                  Solo Liber Liber
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <span className="font-sans font-semibold text-xs tracking-wider uppercase text-on-surface-variant flex items-center gap-1.5 pb-1 border-b border-surface-container-high">
                 <Filter className="w-3.5 h-3.5 text-primary" /> Categorie
               </span>
               <div className="flex flex-col gap-1.5">
@@ -285,6 +334,12 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
         <div className="lg:col-span-9 space-y-4">
           <div className="flex justify-between items-center px-2">
             <span className="font-sans font-semibold text-xs text-on-surface-variant/70 tracking-widest uppercase">Risultati ({allResults.length})</span>
+            <button
+              onClick={() => setIsAddingManual(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/10 text-secondary rounded-lg font-sans font-bold text-[10px] uppercase tracking-widest transition-all hover:bg-secondary/20"
+            >
+              <Plus className="w-3.5 h-3.5" /> Aggiungi Manualmente
+            </button>
           </div>
 
           {isSearchingExternal && (
@@ -384,6 +439,38 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
       </section>
 
       <AnimatePresence>
+        {isAddingManual && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-surface max-w-md w-full rounded-2xl p-8 shadow-2xl border border-surface-container-high relative">
+              <button onClick={() => setIsAddingManual(false)} className="absolute top-4 right-4 p-2"><X className="w-4 h-4" /></button>
+              <h3 className="font-serif text-2xl font-semibold mb-6">Aggiungi al Santuario</h3>
+              <form onSubmit={handleManualSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Titolo</label>
+                  <input type="text" required value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} className="w-full px-4 py-2.5 bg-white border rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Autore</label>
+                  <input type="text" required value={manualAuthor} onChange={(e) => setManualAuthor(e.target.value)} className="w-full px-4 py-2.5 bg-white border rounded-xl text-sm" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Categoria</label>
+                  <select value={manualCategory} onChange={(e) => setManualCategory(e.target.value)} className="w-full px-4 py-2.5 bg-white border rounded-xl text-sm">
+                    {['Romanzi', 'Classici', 'Poesia', 'Filosofia'].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Descrizione (Opzionale)</label>
+                  <textarea rows={3} value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} className="w-full px-4 py-2.5 bg-white border rounded-xl text-sm" />
+                </div>
+                <button type="submit" className="w-full py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-md mt-4">
+                   Custodisci nel Santuario
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
         {selectedBookDetail && (
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-surface max-w-2xl w-full rounded-2xl overflow-hidden player-shadow border border-surface-container-high relative max-h-[90vh] flex flex-col">
