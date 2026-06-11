@@ -62,7 +62,7 @@ export default function AlfonsaChat() {
             initial={{ opacity: 0, scale: 0.8, y: 100 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 100 }}
-            className="fixed bottom-24 right-6 md:bottom-24 md:right-8 w-[350px] md:w-[400px] h-[500px] bg-white rounded-2xl shadow-2xl z-50 border border-surface-container flex flex-col overflow-hidden"
+            className="fixed bottom-24 left-4 right-4 md:left-auto md:bottom-24 md:right-8 mx-auto md:mx-0 w-auto md:w-[400px] max-w-[500px] h-[500px] bg-white rounded-2xl shadow-2xl z-50 border border-surface-container flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="bg-primary p-4 text-white flex justify-between items-center">

@@ -8,12 +8,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const GROQ_API_KEY = process.env.LIBRERIA_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 if (!GROQ_API_KEY) {
-  console.error('ATTENZIONE: LIBRERIA_API_KEY non è configurata!');
+  console.error('ATTENZIONE: GROQ_API_KEY non è configurata!');
 } else {
-  console.log('LIBRERIA_API_KEY configurata (lunghezza: ' + GROQ_API_KEY.length + ')');
+  console.log('GROQ_API_KEY configurata (lunghezza: ' + GROQ_API_KEY.length + ')');
 }
 
 app.post('/api/chat', async (req, res) => {
