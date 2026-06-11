@@ -91,6 +91,11 @@ export default function LibraryPage() {
     }
   };
 
+  const handleOpenDetail = (reading: Reading) => {
+    setPoeticIntro(null);
+    setSelectedBookDetail(reading);
+  };
+
   const tabReadings = readings.filter(r => r.status === activeTab);
 
   if (isLoadingReadings || isLoadingNotes) {
@@ -148,7 +153,7 @@ export default function LibraryPage() {
                     layout
                     key={reading.id}
                     className="bg-white rounded-2xl p-5 border border-surface-container-high/40 shadow-sm flex flex-col md:flex-row gap-5 items-center justify-between cursor-pointer hover:shadow-md transition-all"
-                    onClick={() => { setSelectedBookDetail(reading); setPoeticIntro(null); }}
+                    onClick={() => handleOpenDetail(reading)}
                   >
                     <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left flex-1">
                       <img src={reading.book?.coverUrl} alt={reading.book?.title} className="w-20 rounded-md shadow-sm aspect-[2/3] object-cover" />
@@ -264,7 +269,7 @@ export default function LibraryPage() {
         {selectedBookDetail && selectedBookDetail.book && (
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-surface max-w-2xl w-full rounded-2xl overflow-hidden shadow-2xl border border-surface-container-high relative max-h-[90vh] flex flex-col">
-              <button onClick={() => setSelectedBookDetail(null)} className="absolute top-4 right-4 p-2 z-10"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setSelectedBookDetail(null); setPoeticIntro(null); }} className="absolute top-4 right-4 p-2 z-10"><X className="w-4 h-4" /></button>
               <div className="overflow-y-auto p-6 md:p-8 space-y-6">
                 <div className="flex flex-col sm:flex-row gap-6">
                   <div className="w-32 sm:w-40 flex-shrink-0 mx-auto sm:mx-0"><img src={selectedBookDetail.book.coverUrl} className="w-full rounded-lg shadow-md aspect-[2/3] object-cover" /></div>
@@ -286,7 +291,7 @@ export default function LibraryPage() {
                   </div>
                 </div>
                 <div className="border-t pt-5 flex justify-end">
-                   <button onClick={() => setSelectedBookDetail(null)} className="px-4 py-2 border rounded-xl text-xs font-bold uppercase">Esci</button>
+                   <button onClick={() => { setSelectedBookDetail(null); setPoeticIntro(null); }} className="px-4 py-2 border rounded-xl text-xs font-bold uppercase">Esci</button>
                 </div>
               </div>
             </motion.div>
