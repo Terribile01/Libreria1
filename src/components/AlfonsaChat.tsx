@@ -33,12 +33,21 @@ export default function AlfonsaChat() {
         body: JSON.stringify({ messages: [...messages, userMessage] }),
       });
 
+      if (response.status === 404) {
+        throw new Error("Il cuore di Alfonsa (il server) sembra spento. Assicurati che il 'Curatore' lo abbia avviato.");
+      }
+
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Alfonsa è sovrappensiero. Riprova tra un istante.");
+      }
+
       const assistantMessage = data.choices[0].message;
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in Alfonsa chat:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Alfonsa sta riposando tra i volumi della biblioteca (Verifica la tua API Key!). Possiamo riprendere?" }]);
+      const errorMessage = error.message || "Alfonsa sta riposando tra i volumi della biblioteca. Possiamo riprendere?";
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMessage }]);
     } finally {
       setIsLoading(false);
     }
