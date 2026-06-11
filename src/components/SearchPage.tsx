@@ -117,6 +117,11 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
     }
   };
 
+  const handleOpenDetail = (book: ExternalBook) => {
+    setPoeticIntro(null);
+    setSelectedBookDetail(book);
+  };
+
   // VIBES remain the same...
   const VIBES = [
     { 
@@ -276,7 +281,7 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
                 <motion.div 
                   layout
                   key={book.id}
-                  onClick={() => setSelectedBookDetail(book as ExternalBook)}
+                  onClick={() => handleOpenDetail(book as ExternalBook)}
                   className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md border border-surface-container-high/40 cursor-pointer group flex flex-col h-full transform transition-transform hover:-translate-y-1 duration-300"
                 >
                   <div className="aspect-[4/5] bg-surface overflow-hidden relative">
@@ -352,7 +357,7 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
         {selectedBookDetail && (
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-surface max-w-2xl w-full rounded-2xl overflow-hidden player-shadow border border-surface-container-high relative max-h-[90vh] flex flex-col">
-              <button onClick={() => setSelectedBookDetail(null)} className="absolute top-4 right-4 p-2 z-10"><X className="w-4 h-4" /></button>
+              <button onClick={() => { setSelectedBookDetail(null); setPoeticIntro(null); }} className="absolute top-4 right-4 p-2 z-10"><X className="w-4 h-4" /></button>
               <div className="overflow-y-auto p-6 md:p-8 space-y-6">
                 <div className="flex flex-col sm:flex-row gap-6">
                   <div className="w-32 sm:w-40 flex-shrink-0"><img src={selectedBookDetail.coverUrl} className="w-full rounded-lg shadow-md" /></div>
