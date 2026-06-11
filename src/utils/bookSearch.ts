@@ -111,11 +111,20 @@ export const BookSearchService = {
     if (!query || query.length < 3) return [];
 
     try {
+      console.log(`[GoogleBooks] Searching for: ${query}`);
       // Use langRestrict=it for Italian priority
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&langRestrict=it&maxResults=10`);
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&langRestrict=it&maxResults=15`);
       const data = await response.json();
 
-      if (!data.items) return [];
+      if (!data.items || data.items.length === 0) {
+        console.log(`[GoogleBooks] No results with langRestrict=it, trying general search...`);
+        const genResponse = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`);
+        const genData = await genResponse.json();
+        if (!genData.items) return [];
+        data.items = genData.items;
+      }
+
+      console.log(`[GoogleBooks] Found ${data.items.length} items`);
 
       return data.items.map((item: any) => {
         const info = item.volumeInfo;
@@ -137,16 +146,64 @@ export const BookSearchService = {
   },
 
   /**
+   * Search on Liber Liber (via Google Books specialized query)
+   * Liber Liber doesn't have a direct JSON API, so we target it through Google Books or try a direct approach if possible.
+   * For now, let's optimize the Google Books query to look for Liber Liber explicitly if results are low.
+   */
+  searchLiberLiber: async (query: string): Promise<ExternalBook[]> => {
+    if (!query || query.length < 3) return [];
+
+    try {
+      console.log(`[LiberLiber-Proxy] Searching for: ${query}`);
+      // Search for "Liber Liber" + query to find their editions
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}+"Liber Liber"&maxResults=5`);
+      const data = await response.json();
+
+      if (!data.items) return [];
+
+      return data.items.map((item: any) => {
+        const info = item.volumeInfo;
+        return {
+          id: `ll-${item.id}`,
+          title: info.title,
+          author: info.authors ? info.authors[0] : 'Autore Sconosciuto',
+          coverUrl: info.imageLinks?.thumbnail?.replace('http:', 'https:') || 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300',
+          category: 'Classici',
+          description: `Edizione di qualità curata dal Progetto Liber Liber. ${info.description ? info.description.substring(0, 150) + '...' : ''}`,
+          source: 'GoogleBooks' as any, // Labeling as GoogleBooks for now but we can change the source type
+          extraLabel: 'LIBER LIBER',
+          externalUrl: info.infoLink
+        };
+      }).filter((b: any) => b.title.toLowerCase().includes(query.toLowerCase()) || b.author.toLowerCase().includes(query.toLowerCase()));
+    } catch (error) {
+      return [];
+    }
+  },
+
+  /**
    * Combined search
    */
   unifiedSearch: async (query: string): Promise<ExternalBook[]> => {
-    const [gbResults, olResults, pgResults] = await Promise.all([
+    console.log(`[UnifiedSearch] Starting search for: ${query}`);
+
+    // We run them in parallel but wait for Google Books first to ensure its results are ready for priority
+    const [llResults, gbResults, olResults, pgResults] = await Promise.all([
+      BookSearchService.searchLiberLiber(query),
       BookSearchService.searchGoogleBooks(query),
       BookSearchService.searchOpenLibrary(query),
       BookSearchService.searchGutenberg(query)
     ]);
 
-    // Priority: Google Books (best Italian), then others
-    return [...gbResults, ...olResults, ...pgResults];
+    console.log(`[UnifiedSearch] Results - LL: ${llResults.length}, GB: ${gbResults.length}, OL: ${olResults.length}, PG: ${pgResults.length}`);
+
+    // Priority: Liber Liber (if found), then Google Books, then others
+    // We filter duplicates by ID
+    const all = [...llResults, ...gbResults, ...olResults, ...pgResults];
+    const seen = new Set();
+    return all.filter(book => {
+      const duplicate = seen.has(book.id);
+      seen.add(book.id);
+      return !duplicate;
+    });
   }
 };

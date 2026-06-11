@@ -6,9 +6,9 @@ import {
 } from 'lucide-react';
 import { Book } from '../types';
 import { BookSearchService, ExternalBook } from '../utils/bookSearch';
-import { BookService } from '../utils/database';
+import { BookService, DiaryService } from '../utils/database';
 import { useAuth } from '../context/AuthContext';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AIProvider } from '../utils/aiProvider';
 
 interface SearchPageProps {
@@ -70,8 +70,26 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
   }, [searchQuery]);
 
   const allResults = useMemo(() => {
-    return [...filteredBooks, ...externalResults];
-  }, [filteredBooks, externalResults]);
+    // Prioritize external results when searching
+    if (searchQuery.length >= 3) {
+      return [...externalResults, ...filteredBooks];
+    }
+    return filteredBooks;
+  }, [filteredBooks, externalResults, searchQuery]);
+
+  // Fetch readings for duplication check
+  const { data: readings = [] } = useQuery({
+    queryKey: ['readings', user?.id],
+    queryFn: () => user ? BookService.getUserReadings(user.id) : Promise.resolve([]),
+    enabled: !!user,
+  });
+
+  const isBookInLibrary = (title: string, author: string) => {
+    return readings.some(r =>
+      r.book?.title.toLowerCase() === title.toLowerCase() &&
+      r.book?.author.toLowerCase() === author.toLowerCase()
+    );
+  };
 
   const importMutation = useMutation({
     mutationFn: async (externalBook: any) => {
@@ -282,7 +300,9 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
                   layout
                   key={book.id}
                   onClick={() => handleOpenDetail(book as ExternalBook)}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md border border-surface-container-high/40 cursor-pointer group flex flex-col h-full transform transition-transform hover:-translate-y-1 duration-300"
+                  className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md border cursor-pointer group flex flex-col h-full transform transition-transform hover:-translate-y-1 duration-300 ${
+                    isBookInLibrary(book.title, book.author) ? 'border-primary/30 ring-1 ring-primary/10' : 'border-surface-container-high/40'
+                  }`}
                 >
                   <div className="aspect-[4/5] bg-surface overflow-hidden relative">
                     <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500" />
@@ -291,6 +311,16 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
                       {book.source !== 'Local' && (
                         <span className="px-2 py-0.5 bg-secondary text-white font-sans font-bold text-[8px] tracking-widest uppercase rounded-full shadow-sm flex items-center gap-1">
                           <Globe className="w-2 h-2" /> {book.source}
+                        </span>
+                      )}
+                      {(book as any).extraLabel && (
+                        <span className="px-2 py-0.5 bg-primary text-white font-sans font-bold text-[8px] tracking-widest uppercase rounded-full shadow-sm flex items-center gap-1">
+                          <Sparkles className="w-2 h-2" /> {(book as any).extraLabel}
+                        </span>
+                      )}
+                      {isBookInLibrary(book.title, book.author) && (
+                        <span className="px-2 py-0.5 bg-green-500 text-white font-sans font-bold text-[8px] tracking-widest uppercase rounded-full shadow-sm flex items-center gap-1">
+                          <CheckSquare className="w-2 h-2" /> NEL SANTUARIO
                         </span>
                       )}
                     </div>
@@ -397,7 +427,11 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
                   </div>
                 </div>
                 <div className="border-t pt-5 flex justify-between items-center">
-                  {selectedBookDetail.source === 'Local' ? <span className="text-xs italic text-on-surface-variant/70">Già nel tuo Santuario</span> : (
+                  {selectedBookDetail.source === 'Local' || isBookInLibrary(selectedBookDetail.title, selectedBookDetail.author) ? (
+                    <div className="flex items-center gap-2 text-green-600 font-sans font-bold text-[10px] uppercase tracking-widest">
+                      <CheckSquare className="w-4 h-4" /> Già nel tuo Santuario
+                    </div>
+                  ) : (
                     <button disabled={importMutation.isPending} onClick={() => handleAddToLibrary(selectedBookDetail)} className="px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center gap-2 disabled:opacity-50">
                       {importMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Importa nel Santuario
                     </button>
