@@ -16,7 +16,13 @@ if (!GROQ_API_KEY) {
   console.log('GROQ_API_KEY configurata (lunghezza: ' + GROQ_API_KEY.length + ')');
 }
 
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
 app.post('/api/chat', async (req, res) => {
+  console.log('Chat request received');
   const { messages } = req.body;
 
   if (!GROQ_API_KEY) {
