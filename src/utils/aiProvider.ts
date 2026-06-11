@@ -77,5 +77,15 @@ export const AIProvider = {
 
     const data = await response.json();
     return data.choices[0].message.content;
+  },
+
+  /**
+   * Generates a poetic introduction for a book
+   */
+  generatePoeticIntro: async (title: string, author: string) => {
+    const prompt = `Sei Rù, la guida letteraria del "Santuario". Scrivi una breve presentazione poetica e suggestiva (massimo 3-4 frasi) per il libro "${title}" di ${author}.
+    Usa un tono accogliente, profondo e leggermente misterioso. Concentrati sull'essenza dell'opera e sul viaggio spirituale che offre al lettore. Non usare prefazioni come "Ecco la presentazione", vai direttamente al testo poetico.`;
+
+    return await AIProvider.generateResponse([{ role: 'user', content: prompt }]);
   }
 };
