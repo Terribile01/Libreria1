@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Lock, Shield, Key, Database, RefreshCw, Eye, EyeOff, 
   CheckCircle2, AlertCircle, LogOut, Terminal, Sparkles, BookOpen, 
-  Clock, Heart, HelpCircle, FileText, Check, Copy
+  Clock, Heart, HelpCircle, FileText, Check, Copy, Trash2, UserCog,
+  ArrowUpCircle, ArrowDownCircle, Bookmark
 } from 'lucide-react';
 import { useAuth, hashPasswordSHA256 } from '../context/AuthContext';
 import { ApiKeyManager, ApiKeyStructure } from '../utils/apiKeys';
@@ -29,6 +30,8 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
     logout, 
     changePassword, 
     updateProfile,
+    deleteUser,
+    updateUserRole,
     securityLog 
   } = useAuth();
 
@@ -41,6 +44,7 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -64,24 +68,6 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
   const [keyValueInput, setKeyValueInput] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Interactive password hash simulator state for the login/register card
-  const [simPassword, setSimPassword] = useState('');
-  const [simSalt, setSimSalt] = useState('S4lt_L3gg0_2026!');
-  const [simHash, setSimHash] = useState('');
-
-  // Update live simulation when password changes
-  React.useEffect(() => {
-    const updateSim = async () => {
-      if (!simPassword) {
-        setSimHash('');
-        return;
-      }
-      const h = await hashPasswordSHA256(simPassword, simSalt);
-      setSimHash(h);
-    };
-    updateSim();
-  }, [simPassword, simSalt]);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -92,11 +78,14 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
     }
     setAuthIsLoading(true);
     try {
-      const res = await login(email, password);
+      const res = await login(email, password, rememberMe);
       if (res.success) {
         setAuthSuccess('Accesso effettuato con successo!');
         // Update edit fields
-        setEditUsername(email); 
+        if (currentUser) {
+           setEditUsername(currentUser.username);
+           setEditEmail(currentUser.email);
+        }
         setTimeout(() => {
           // Re-trigger states
           window.location.reload();
@@ -133,10 +122,17 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
     try {
       const res = await register(username, email, password);
       if (res.success) {
-        setAuthSuccess('Registrazione completata! Accesso in corso...');
+        setAuthSuccess('Registrazione completata con successo! Benvenuto nel Santuario.');
+
+        // After successful registration, we clear inputs and wait a bit longer to let user read success message
+        setUsername('');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+
         setTimeout(() => {
           window.location.reload();
-        }, 800);
+        }, 2000);
       } else {
         setAuthError(res.error || "Errore di registrazione.");
       }
@@ -240,81 +236,38 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
           
           {/* Left Column: Design info about security, salt, hashing */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-surface-container/40 border border-surface-container/60 p-6 rounded-2xl relative overflow-hidden">
+            <div className="bg-surface-container/40 border border-surface-container/60 p-6 rounded-2xl relative overflow-hidden h-full flex flex-col justify-center">
               <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
               
-              <h3 className="font-serif text-xl font-semibold text-primary flex items-center gap-2 mb-3">
-                <Sparkles className="w-5 h-5 text-secondary" />
-                Sicurezza & Privacy su LEGGO
-              </h3>
-              
-              <p className="font-sans text-sm text-on-surface-variant/80 leading-relaxed mb-4">
-                La conservazione delle identità nel santuario <strong>LEGGO</strong> rispetta standard di cifratura moderni delle credenziali. Non memorizziamo mai la tua password reale nel database del browser.
-              </p>
-
-              <div className="space-y-4 font-sans text-xs">
-                <div className="flex gap-3 items-start">
-                  <div className="p-1.5 bg-primary/10 rounded-lg text-primary mt-0.5">
-                    <Key className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-on-surface">Cifrario Salato (Salting)</h4>
-                    <p className="text-on-surface-variant/70 mt-0.5">Viene generato un valore casuale univoco (Salt) per rimescolare la password prima di processarla.</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <div className="p-1.5 bg-primary/10 rounded-lg text-primary mt-0.5">
-                    <Database className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-on-surface">Hash Unidirezionale SHA-256</h4>
-                    <p className="text-on-surface-variant/70 mt-0.5">Utilizziamo la suite nativa <code>window.crypto</code> per computare l&apos;impronta digest del testo cifrato. È matematicamente impossibile invertire l&apos;hash per risalire alla password.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Live Interactive Hashing Play Area */}
-            <div className="bg-surface-container-low border border-surface-container/30 p-5 rounded-2xl">
-              <h4 className="font-sans font-bold text-xs tracking-widest uppercase text-on-surface-variant flex items-center gap-1.5 mb-3">
-                <Terminal className="w-3.5 h-3.5 text-secondary" /> Ispettore Hash in Tempo Reale
-              </h4>
-              <p className="text-xs text-on-surface-variant/70 mb-4 font-sans">
-                Digita una password demo qui sotto per osservare lo SHA-256 generato all&apos;istante con il rispettivo sale crittografico:
-              </p>
-              
-              <div className="space-y-3 font-sans text-xs">
-                <div>
-                  <label className="block text-on-surface-variant mb-1 font-semibold">Test Password:</label>
-                  <input
-                    type="text"
-                    value={simPassword}
-                    onChange={(e) => setSimPassword(e.target.value)}
-                    placeholder="Esempio: password123"
-                    className="w-full px-3 py-1.5 bg-surface rounded-lg border border-surface-container-high/60 focus:outline-none focus:ring-1 focus:ring-primary text-xs"
-                  />
-                </div>
+              <div className="relative z-10">
+                <h3 className="font-serif text-2xl font-semibold text-primary flex items-center gap-2 mb-4">
+                  <Shield className="w-6 h-6 text-secondary" />
+                  La Tua Sicurezza è la Nostra Priorità
+                </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <span className="block text-on-surface-variant mb-0.5 font-semibold">Sale casuale (Salt):</span>
-                    <span className="font-mono text-[10px] break-all bg-surface-container p-1 rounded block text-primary font-bold">
-                      {simSalt}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-on-surface-variant mb-0.5 font-semibold">Funzione Digest:</span>
-                    <span className="font-mono text-[10px] bg-surface-container p-1 rounded block text-secondary font-bold uppercase">
-                      SHA-256 (Native)
-                    </span>
-                  </div>
-                </div>
+                <p className="font-sans text-sm text-on-surface-variant/80 leading-relaxed mb-6">
+                  Il Santuario <strong>LEGGO</strong> è progettato per essere un luogo sicuro. Le tue credenziali non vengono mai trasmesse in chiaro e sono protette da algoritmi di cifratura all'avanguardia.
+                </p>
 
-                <div>
-                  <span className="block text-on-surface-variant mb-1 font-semibold">Impronta finale nel DB (Hash Cifrato):</span>
-                  <div className="bg-black/95 text-green-400 p-2.5 rounded-lg font-mono text-[10px] break-all border border-lime-900/30">
-                    {simHash ? simHash : 'In attesa di caratteri... lo SHA-256 digest calcola 64 stringhe esadecimali'}
+                <div className="space-y-5 font-sans text-sm">
+                  <div className="flex gap-4 items-start">
+                    <div className="p-2 bg-primary/10 rounded-xl text-primary mt-0.5">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-on-surface">Accesso Cifrato</h4>
+                      <p className="text-on-surface-variant/70 mt-1">Ogni interazione con il sistema di login è protetta e verificata per garantire che solo tu possa accedere ai tuoi tesori letterari.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 items-start">
+                    <div className="p-2 bg-primary/10 rounded-xl text-primary mt-0.5">
+                      <Bookmark className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-on-surface">Privacy Totale</h4>
+                      <p className="text-on-surface-variant/70 mt-1">Le tue letture, le tue note e i tuoi pensieri rimangono privati e custoditi nel tuo spazio personale.</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -421,6 +374,21 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
                   </button>
                 </div>
               </div>
+
+              {!isRegisterMode && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-surface-container text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="rememberMe" className="font-sans text-xs text-on-surface-variant cursor-pointer">
+                    Ricordami su questo dispositivo
+                  </label>
+                </div>
+              )}
 
               {isRegisterMode && (
                 <div>
@@ -536,23 +504,27 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
                 <Shield className="w-4 h-4" /> Sicurezza & Password
               </button>
 
-              <button
-                onClick={() => setActiveTab('api')}
-                className={`w-full px-4 py-2.5 rounded-xl font-sans font-semibold text-xs tracking-wide text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                  activeTab === 'api' ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'
-                }`}
-              >
-                <Key className="w-4 h-4" /> Chiavi API esterne
-              </button>
+              {currentUser?.role === 'Amministratore' && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('api')}
+                    className={`w-full px-4 py-2.5 rounded-xl font-sans font-semibold text-xs tracking-wide text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      activeTab === 'api' ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'
+                    }`}
+                  >
+                    <Key className="w-4 h-4" /> Chiavi API esterne
+                  </button>
 
-              <button
-                onClick={() => setActiveTab('db')}
-                className={`w-full px-4 py-2.5 rounded-xl font-sans font-semibold text-xs tracking-wide text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                  activeTab === 'db' ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'
-                }`}
-              >
-                <Database className="w-4 h-4" /> Archivio Utenti (DB)
-              </button>
+                  <button
+                    onClick={() => setActiveTab('db')}
+                    className={`w-full px-4 py-2.5 rounded-xl font-sans font-semibold text-xs tracking-wide text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                      activeTab === 'db' ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:bg-surface-container'
+                    }`}
+                  >
+                    <Database className="w-4 h-4" /> Archivio Utenti (DB)
+                  </button>
+                </>
+              )}
             </div>
             
           </div>
@@ -885,29 +857,25 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
             {activeTab === 'db' && (
               <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 <div>
-                  <h2 className="font-serif text-2xl font-semibold text-on-surface">Visualizzazione Database Crittografico</h2>
+                  <h2 className="font-serif text-2xl font-semibold text-on-surface">Gestione Utenti e Database</h2>
                   <p className="text-xs text-on-surface-variant/70 font-sans mt-0.5">
-                    Demonstrazione didattica per studiare l&apos;archiviazione degli account con conservazione cifrata delle password.
+                    Pannello di controllo per la gestione degli accessi e l'assegnazione dei ruoli all'interno del Santuario.
                   </p>
                 </div>
 
                 <div className="bg-surface border border-surface-container/60 rounded-xl p-5 space-y-4">
                   <h3 className="font-serif text-lg font-semibold text-on-surface flex items-center gap-1.5 border-b border-surface-container/40 pb-2">
-                    <Database className="w-4 h-4 text-primary" /> Tabelle Utenti (<code>leggo_users</code>)
+                    <Database className="w-4 h-4 text-primary" /> Elenco Utenti Registrati
                   </h3>
-
-                  <p className="font-sans text-xs text-on-surface-variant/80 leading-relaxed">
-                    Di seguito è visibile il recordset completo archiviato localmente nel sandbox. Per fini dimostrativi di sicurezza, sono state celate le password reali in chiaro mostrando solo l&apos;impostazione strutturale e i relativi digest di ciascun utente.
-                  </p>
 
                   <div className="overflow-x-auto">
                     <table className="w-full text-left font-sans text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-surface-container-high/70 bg-surface-container/40 text-on-surface-variant font-bold uppercase tracking-widest text-[10px]">
                           <th className="px-4 py-3">Avatar & Nome</th>
-                          <th className="px-4 py-3">Indirizzo Email</th>
-                          <th className="px-4 py-3 text-center">Data Registrazione</th>
+                          <th className="px-4 py-3">Contatti</th>
                           <th className="px-4 py-3 text-center">Permessi / Ruolo</th>
+                          <th className="px-4 py-3 text-right">Azioni</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-surface-container/40">
@@ -925,16 +893,56 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
                                 <span className="text-[10px] text-on-surface-variant/50 font-mono">ID: {user.id}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-on-surface-variant align-middle">{user.email}</td>
-                            <td className="px-4 py-3 text-center text-on-surface-variant align-middle font-mono text-[11px]">{user.createdAt}</td>
-                            <td className="px-4 py-3 text-center text-on-surface-variant align-middle">
+                            <td className="px-4 py-3 align-middle">
+                               <div className="text-on-surface-variant">{user.email}</div>
+                               <div className="text-[9px] text-on-surface-variant/50 font-mono">Iscritto il: {user.createdAt}</div>
+                            </td>
+                            <td className="px-4 py-3 text-center align-middle">
                               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                                 user.role === 'Amministratore' 
                                   ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                                  : user.role === 'Curatore'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                   : 'bg-primary/15 text-primary border border-primary/10'
                               }`}>
                                 {user.role}
                               </span>
+                            </td>
+                            <td className="px-4 py-3 text-right align-middle">
+                              <div className="flex justify-end gap-1.5">
+                                {currentUser?.id !== user.id && (
+                                  <>
+                                    {user.role !== 'Amministratore' ? (
+                                      <button
+                                        onClick={() => updateUserRole(user.id, 'Amministratore')}
+                                        className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                        title="Promuovi ad Amministratore"
+                                      >
+                                        <ArrowUpCircle className="w-4 h-4" />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => updateUserRole(user.id, 'Lettore Silente')}
+                                        className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors cursor-pointer"
+                                        title="Rimuovi privilegi Admin"
+                                      >
+                                        <ArrowDownCircle className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => {
+                                        if (confirm(`Sei sicuro di voler eliminare l'utente @${user.username}?`)) {
+                                          deleteUser(user.id);
+                                        }
+                                      }}
+                                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                      title="Elimina Utente"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}

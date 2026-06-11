@@ -8,6 +8,7 @@ import SearchPage from './components/SearchPage';
 import LibraryPage from './components/LibraryPage';
 import ListenPage from './components/ListenPage';
 import PersonalPage from './components/PersonalPage';
+import AlfonsaChat from './components/AlfonsaChat';
 
 import { INITIAL_BOOKS, INITIAL_AUDIO_TRACKS, INITIAL_NOTES } from './data';
 import { Book, PersonalNote } from './types';
@@ -168,6 +169,9 @@ export default function App() {
 
       {/* Footer component */}
       <Footer onNavigate={setCurrentPage} />
+
+      {/* Rù Chat Assistant */}
+      <AlfonsaChat />
     </div>
   );
 
