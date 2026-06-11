@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Send, X, Bot, User, Sparkles, Loader2 } from 'lucide-react';
-import { ApiKeyManager } from '../utils/apiKeys';
+import { AIProvider } from '../utils/aiProvider';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -30,26 +30,26 @@ export default function RuChat() {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
+    const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
+
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setMessages(newMessages);
     setIsLoading(true);
 
     try {
-      // Per ora simuliamo una risposta, dato che non abbiamo un backend reale qui
-      // ma il codice è pronto per integrare le chiavi API configurate.
-      const geminiKey = ApiKeyManager.get('GEMINI_API_KEY');
-      const groqKey = ApiKeyManager.get('GROQ_API_KEY');
+      const response = await AIProvider.generateResponse(newMessages);
 
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `Ho ricevuto il tuo pensiero: "${userMessage}". Come Rù, sto ancora imparando a connettermi pienamente con le chiavi API configurate (Gemini: ${geminiKey ? 'Presente' : 'Mancante'}, Groq: ${groqKey ? 'Presente' : 'Mancante'}). Presto sarò in grado di offrirti analisi letterarie profonde.`
-        }]);
-        setIsLoading(false);
-      }, 1000);
-
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Mi scuso, ho avuto un sussulto nella mia connessione spirituale. Riprova più tardi.' }]);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: response
+      }]);
+    } catch (error: any) {
+      console.error("AI Error:", error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `Rù ha avuto un momento di riflessione troppo profondo (${error.message}). Verifica le tue chiavi API nell'Area Personale.`
+      }]);
+    } finally {
       setIsLoading(false);
     }
   };
