@@ -42,6 +42,16 @@ CREATE TABLE readings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id, book_id)
 );
+
+-- Tabella Notes (Diario Libero)
+CREATE TABLE notes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  book_id UUID REFERENCES books ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 ```
 
 ## 3. Row Level Security (RLS)
@@ -61,6 +71,10 @@ CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT WITH CHECK (tru
 -- Readings: visibili e gestibili solo dal proprietario
 ALTER TABLE readings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Utente gestisce le proprie letture" ON readings FOR ALL USING (auth.uid() = user_id);
+
+-- Notes: visibili e gestibili solo dal proprietario
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Utente gestisce le proprie note" ON notes FOR ALL USING (auth.uid() = user_id);
 ```
 
 ## 4. Trigger per Profilo Automatico (Opzionale ma consigliato)

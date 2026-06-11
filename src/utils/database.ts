@@ -97,3 +97,65 @@ export const BookService = {
     if (error) throw error;
   }
 };
+
+export interface DiaryNote {
+  id: string;
+  user_id: string;
+  book_id?: string;
+  title: string;
+  content: string;
+  created_at: string;
+  book?: DatabaseBook;
+}
+
+export const DiaryService = {
+  // Get all user notes
+  getUserNotes: async (userId: string) => {
+    const { data, error } = await supabase
+      .from('notes')
+      .select(`
+        *,
+        book:books(*)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as DiaryNote[];
+  },
+
+  // Create new note
+  addNote: async (note: Omit<DiaryNote, 'id' | 'created_at'>) => {
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([note])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as DiaryNote;
+  },
+
+  // Update note
+  updateNote: async (noteId: string, updates: Partial<Pick<DiaryNote, 'title' | 'content' | 'book_id'>>) => {
+    const { data, error } = await supabase
+      .from('notes')
+      .update(updates)
+      .eq('id', noteId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as DiaryNote;
+  },
+
+  // Remove note
+  removeNote: async (noteId: string) => {
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', noteId);
+
+    if (error) throw error;
+  }
+};

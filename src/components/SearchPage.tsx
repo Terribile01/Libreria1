@@ -9,6 +9,7 @@ import { BookSearchService, ExternalBook } from '../utils/bookSearch';
 import { BookService } from '../utils/database';
 import { useAuth } from '../context/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AIProvider } from '../utils/aiProvider';
 
 interface SearchPageProps {
   books: Book[];
@@ -25,6 +26,8 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
   // External Search State
   const [externalResults, setExternalResults] = useState<ExternalBook[]>([]);
   const [isSearchingExternal, setIsSearchingExternal] = useState(false);
+  const [poeticIntro, setPoeticIntro] = useState<string | null>(null);
+  const [isGeneratingIntro, setIsGeneratingIntro] = useState(false);
 
   // "Prossimo Viaggio" Soul Vibe generator
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
@@ -99,6 +102,19 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
 
   const handleAddToLibrary = (recBook: any) => {
     importMutation.mutate(recBook);
+  };
+
+  const handleAskRu = async (book: ExternalBook) => {
+    setIsGeneratingIntro(true);
+    setPoeticIntro(null);
+    try {
+      const intro = await AIProvider.generatePoeticIntro(book.title, book.author);
+      setPoeticIntro(intro);
+    } catch (error: any) {
+      setPoeticIntro(`Rù sta meditando profondamente in questo momento (${error.message}). Riprova più tardi.`);
+    } finally {
+      setIsGeneratingIntro(false);
+    }
   };
 
   // VIBES remain the same...
@@ -350,11 +366,29 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
                 </div>
                 <div className="border-t pt-5 space-y-4">
                   <div className="flex justify-between items-center">
-                    <h4 className="font-serif text-base font-semibold">Introduzione di Rù</h4>
-                    {selectedBookDetail.externalUrl && <a href={selectedBookDetail.externalUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1">Leggi Opera <ExternalLink className="w-2.5 h-2.5" /></a>}
+                    <h4 className="font-serif text-base font-semibold flex items-center gap-2">
+                       Introduzione di Rù
+                       {isGeneratingIntro && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+                    </h4>
+                    <div className="flex items-center gap-3">
+                      {!poeticIntro && !isGeneratingIntro && (
+                        <button
+                          onClick={() => handleAskRu(selectedBookDetail)}
+                          className="text-[10px] font-sans font-bold text-secondary hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest cursor-pointer"
+                        >
+                          <Sparkles className="w-3 h-3" /> Chiedi a Rù
+                        </button>
+                      )}
+                      {selectedBookDetail.externalUrl && <a href={selectedBookDetail.externalUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1 uppercase tracking-widest font-bold">Leggi Opera <ExternalLink className="w-2.5 h-2.5" /></a>}
+                    </div>
                   </div>
-                  <div className="bg-surface-container-low/40 p-4 rounded-lg border-l-4 border-primary italic text-sm text-on-surface-variant/90">
-                    {selectedBookDetail.source !== 'Local' ? `«Nel cuore di questo volume esterno, Rù intravede un cammino prezioso. ${selectedBookDetail.description}»` : selectedBookDetail.description}
+
+                  <div className="bg-surface-container-low/40 p-4 rounded-lg border-l-4 border-primary italic text-sm text-on-surface-variant/90 min-h-[60px] flex items-center">
+                    {isGeneratingIntro ? (
+                      <span className="text-xs opacity-50 animate-pulse">Rù sta consultando le stelle per te...</span>
+                    ) : (
+                      poeticIntro || (selectedBookDetail.source !== 'Local' ? `«Nel cuore di questo volume esterno, Rù intravede un cammino prezioso. ${selectedBookDetail.description}»` : selectedBookDetail.description)
+                    )}
                   </div>
                 </div>
                 <div className="border-t pt-5 flex justify-between items-center">

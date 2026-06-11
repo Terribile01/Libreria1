@@ -71,7 +71,7 @@ export default function RuChat() {
             initial={{ opacity: 0, y: 100, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            className="fixed bottom-24 right-6 w-80 md:w-96 h-[500px] bg-surface border border-surface-container-high rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50"
+            className="fixed bottom-24 left-4 right-4 md:left-auto md:right-6 md:w-96 h-[500px] bg-surface border border-surface-container-high rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50 mx-auto"
           >
             {/* Header */}
             <div className="p-4 bg-primary text-white flex justify-between items-center">
