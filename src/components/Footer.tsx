@@ -1,7 +1,5 @@
-import { MessageCircle } from 'lucide-react';
-
 interface FooterProps {
-  onNavigate: (page: 'home' | 'search' | 'library' | 'listen') => void;
+  onNavigate: (page: 'home' | 'search' | 'library' | 'listen' | 'profile') => void;
 }
 
 export default function Footer({ onNavigate }: FooterProps) {
@@ -10,9 +8,9 @@ export default function Footer({ onNavigate }: FooterProps) {
       <div className="flex flex-col items-center gap-6 py-16 px-4 max-w-7xl mx-auto">
         <div 
           onClick={() => onNavigate('home')}
-          className="font-serif text-2xl text-primary font-semibold tracking-tight cursor-pointer hover:opacity-80 transition-all duration-300"
+          className="font-serif text-2xl text-primary font-bold tracking-wider cursor-pointer hover:opacity-80 transition-all duration-300"
         >
-          Vale
+          LEGGO
         </div>
 
         <nav className="flex flex-wrap justify-center gap-8 md:gap-12 text-sm font-semibold tracking-widest uppercase text-on-surface-variant/70">
@@ -22,21 +20,25 @@ export default function Footer({ onNavigate }: FooterProps) {
           >
             Home
           </button>
-          <button
-            onClick={() => {
-              const url = window.location.href;
-              const text = `Guarda questo spazio di lettura per Vale: ${url}`;
-              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-            }}
-            className="flex items-center gap-2 hover:text-primary transition-colors cursor-pointer"
+          <button 
+            onClick={() => onNavigate('profile')}
+            className="hover:text-primary transition-colors cursor-pointer"
           >
-            <MessageCircle className="w-4 h-4" />
-            Condividi su WhatsApp
+            Area Personale
           </button>
+          <a href="#contatti" className="hover:text-primary transition-colors">
+            Contatti
+          </a>
+          <a href="#privacy" className="hover:text-primary transition-colors">
+            Privacy Policy
+          </a>
+          <a href="#termini" className="hover:text-primary transition-colors">
+            Termini
+          </a>
         </nav>
 
         <p className="font-sans text-xs tracking-wide text-on-surface-variant/50 mt-4 italic">
-          © {new Date().getFullYear()} Vale. A sanctuary for the silent reader.
+          © {new Date().getFullYear()} LEGGO. Un rifugio silenzioso per lettori liberi e appassionati.
         </p>
       </div>
     </footer>

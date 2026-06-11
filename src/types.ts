@@ -7,7 +7,6 @@ export interface Book {
   description: string;
   status: 'Preferiti' | 'Letti' | 'Da Leggere';
   extraLabel?: string; // e.g. "GENNAIO 2024"
-  externalUrl?: string;
   notesCount?: number;
   chapters?: string[];
   duration?: string; // total audio length e.g. "44:55"

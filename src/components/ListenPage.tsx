@@ -97,7 +97,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
           Aura di Ascolto
         </h1>
         <p className="font-sans text-sm text-on-surface-variant/70">
-          Lasciati cullare dalle parole. Un angolo tranquillo dove ascoltare storie e riflessioni, con trascrizioni dedicate per accompagnare i tuoi momenti di pausa.
+          Un player audio rilassante con indicazione chiara del capitolo corrente, trascrizioni sintoniche in tempo reale e una coda ordinata.
         </p>
       </div>
 
