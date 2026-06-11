@@ -1,4 +1,5 @@
 import { Book } from '../types';
+import { ApiKeyManager } from './apiKeys';
 
 export interface ExternalBook extends Book {
   source: 'OpenLibrary' | 'ProjectGutenberg' | 'GoogleBooks' | 'Local';
@@ -112,13 +113,16 @@ export const BookSearchService = {
 
     try {
       console.log(`[GoogleBooks] Searching for: ${query}`);
+      const apiKey = ApiKeyManager.get('GOOGLE_BOOKS_API_KEY');
+      const keyQuery = apiKey ? `&key=${apiKey}` : '';
+
       // Use langRestrict=it for Italian priority
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&langRestrict=it&maxResults=15`);
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&langRestrict=it&maxResults=15${keyQuery}`);
       const data = await response.json();
 
       if (!data.items || data.items.length === 0) {
         console.log(`[GoogleBooks] No results with langRestrict=it, trying general search...`);
-        const genResponse = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10`);
+        const genResponse = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10${keyQuery}`);
         const genData = await genResponse.json();
         if (!genData.items) return [];
         data.items = genData.items;
@@ -147,21 +151,30 @@ export const BookSearchService = {
 
   /**
    * Search on Liber Liber (via Google Books specialized query)
-   * Liber Liber doesn't have a direct JSON API, so we target it through Google Books or try a direct approach if possible.
-   * For now, let's optimize the Google Books query to look for Liber Liber explicitly if results are low.
+   * We search specifically for publishers or terms related to Liber Liber
    */
   searchLiberLiber: async (query: string): Promise<ExternalBook[]> => {
     if (!query || query.length < 3) return [];
 
     try {
       console.log(`[LiberLiber-Proxy] Searching for: ${query}`);
-      // Search for "Liber Liber" + query to find their editions
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}+"Liber Liber"&maxResults=5`);
+      const apiKey = ApiKeyManager.get('GOOGLE_BOOKS_API_KEY');
+      const keyQuery = apiKey ? `&key=${apiKey}` : '';
+
+      // Try searching with inpublisher: "Liber Liber" or just as a keyword
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}+inpublisher:"Liber Liber"&maxResults=10${keyQuery}`);
       const data = await response.json();
 
-      if (!data.items) return [];
+      let items = data.items || [];
 
-      return data.items.map((item: any) => {
+      // Fallback if inpublisher is too strict
+      if (items.length === 0) {
+        const fallbackResponse = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}+"Liber Liber"&maxResults=10${keyQuery}`);
+        const fallbackData = await fallbackResponse.json();
+        items = fallbackData.items || [];
+      }
+
+      return items.map((item: any) => {
         const info = item.volumeInfo;
         return {
           id: `ll-${item.id}`,
@@ -169,41 +182,47 @@ export const BookSearchService = {
           author: info.authors ? info.authors[0] : 'Autore Sconosciuto',
           coverUrl: info.imageLinks?.thumbnail?.replace('http:', 'https:') || 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300',
           category: 'Classici',
-          description: `Edizione di qualità curata dal Progetto Liber Liber. ${info.description ? info.description.substring(0, 150) + '...' : ''}`,
-          source: 'GoogleBooks' as any, // Labeling as GoogleBooks for now but we can change the source type
+          description: `Edizione digitale curata dal Progetto Liber Liber (ODV). ${info.description ? info.description.substring(0, 150) + '...' : 'Un classico reso accessibile grazie a Liber Liber.'}`,
+          source: 'GoogleBooks' as any,
           extraLabel: 'LIBER LIBER',
           externalUrl: info.infoLink
         };
-      }).filter((b: any) => b.title.toLowerCase().includes(query.toLowerCase()) || b.author.toLowerCase().includes(query.toLowerCase()));
+      });
     } catch (error) {
+      console.error("Liber Liber search error:", error);
       return [];
     }
   },
 
   /**
-   * Combined search
+   * Combined search - Enhanced to be more resilient and fast
    */
   unifiedSearch: async (query: string): Promise<ExternalBook[]> => {
     console.log(`[UnifiedSearch] Starting search for: ${query}`);
 
-    // We run them in parallel but wait for Google Books first to ensure its results are ready for priority
-    const [llResults, gbResults, olResults, pgResults] = await Promise.all([
-      BookSearchService.searchLiberLiber(query),
-      BookSearchService.searchGoogleBooks(query),
-      BookSearchService.searchOpenLibrary(query),
-      BookSearchService.searchGutenberg(query)
-    ]);
+    // Create an array of promises but handle each individually to avoid one failing all
+    const searchPromises = [
+      BookSearchService.searchLiberLiber(query).catch(e => { console.error("LL Error", e); return []; }),
+      BookSearchService.searchGoogleBooks(query).catch(e => { console.error("GB Error", e); return []; }),
+      BookSearchService.searchOpenLibrary(query).catch(e => { console.error("OL Error", e); return []; }),
+      BookSearchService.searchGutenberg(query).catch(e => { console.error("PG Error", e); return []; })
+    ];
+
+    const resultsArray = await Promise.all(searchPromises);
+    const [llResults, gbResults, olResults, pgResults] = resultsArray;
 
     console.log(`[UnifiedSearch] Results - LL: ${llResults.length}, GB: ${gbResults.length}, OL: ${olResults.length}, PG: ${pgResults.length}`);
 
     // Priority: Liber Liber (if found), then Google Books, then others
-    // We filter duplicates by ID
     const all = [...llResults, ...gbResults, ...olResults, ...pgResults];
+
+    // Filter duplicates by title and author to be more effective across different sources
     const seen = new Set();
     return all.filter(book => {
-      const duplicate = seen.has(book.id);
-      seen.add(book.id);
-      return !duplicate;
+      const key = `${book.title.toLowerCase().trim()}|${book.author.toLowerCase().trim()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
   }
 };

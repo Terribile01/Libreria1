@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Bookmark, CheckCircle2, Trash2, Edit3, Plus, X, FileText, BookOpen, Loader2, Sparkles } from 'lucide-react';
+import { Heart, Bookmark, CheckCircle2, Trash2, X, BookOpen, Loader2, Sparkles } from 'lucide-react';
 import { Book } from '../types';
-import { BookService, Reading, DiaryService, DiaryNote } from '../utils/database';
+import { BookService, Reading } from '../utils/database';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AIProvider } from '../utils/aiProvider';
@@ -11,26 +11,14 @@ export default function LibraryPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Book['status']>('Preferiti');
-  const [isAddingNote, setIsAddingNote] = useState(false);
   const [selectedBookDetail, setSelectedBookDetail] = useState<Reading | null>(null);
   const [poeticIntro, setPoeticIntro] = useState<string | null>(null);
   const [isGeneratingIntro, setIsGeneratingIntro] = useState(false);
-
-  // New Note form state
-  const [noteTitle, setNoteTitle] = useState('');
-  const [noteContent, setNoteContent] = useState('');
-  const [noteBookId, setNoteBookId] = useState<string>('');
 
   // Fetch data
   const { data: readings = [], isLoading: isLoadingReadings } = useQuery({
     queryKey: ['readings', user?.id],
     queryFn: () => BookService.getUserReadings(user!.id),
-    enabled: !!user,
-  });
-
-  const { data: notes = [], isLoading: isLoadingNotes } = useQuery({
-    queryKey: ['notes', user?.id],
-    queryFn: () => DiaryService.getUserNotes(user!.id),
     enabled: !!user,
   });
 
@@ -48,34 +36,6 @@ export default function LibraryPage() {
       setSelectedBookDetail(null);
     },
   });
-
-  const addNoteMutation = useMutation({
-    mutationFn: (newNote: Omit<DiaryNote, 'id' | 'created_at'>) =>
-      DiaryService.addNote(newNote),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
-      setIsAddingNote(false);
-      setNoteTitle('');
-      setNoteContent('');
-      setNoteBookId('');
-    },
-  });
-
-  const removeNoteMutation = useMutation({
-    mutationFn: (noteId: string) => DiaryService.removeNote(noteId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
-  });
-
-  const handleSaveNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !noteTitle.trim() || !noteContent.trim()) return;
-    addNoteMutation.mutate({
-      user_id: user.id,
-      title: noteTitle,
-      content: noteContent,
-      book_id: noteBookId || undefined
-    });
-  };
 
   const handleAskRu = async (reading: Reading) => {
     if (!reading.book) return;
@@ -98,7 +58,7 @@ export default function LibraryPage() {
 
   const tabReadings = readings.filter(r => r.status === activeTab);
 
-  if (isLoadingReadings || isLoadingNotes) {
+  if (isLoadingReadings) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-primary">
         <Loader2 className="w-10 h-10 animate-spin mb-4" />
@@ -120,9 +80,9 @@ export default function LibraryPage() {
         <p className="font-sans text-sm text-on-surface-variant/70">Il tuo santuario di lettura personale nel cloud.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-10 items-start">
         {/* Scaffali */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="space-y-6">
           <div className="flex border-b border-surface-container pb-px gap-4 md:gap-8 justify-center md:justify-start">
             {([
               { key: 'Preferiti', icon: Heart, label: 'Preferiti' },
@@ -186,83 +146,7 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        {/* Diario Fluido */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="flex justify-between items-center px-1">
-            <span className="font-serif text-xl font-medium text-on-surface flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" /> Diario del Santuario
-            </span>
-            <button onClick={() => setIsAddingNote(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full font-sans font-bold text-xs uppercase transition-all cursor-pointer">
-              <Plus className="w-3.5 h-3.5" /> Nuovo
-            </button>
-          </div>
-
-          <div className="space-y-6">
-            <AnimatePresence mode="popLayout">
-              {notes.map((note) => (
-                <motion.div key={note.id} className="bg-[#fcfaf2] rounded-xl p-6 shadow-md border-l-[6px] border-secondary border border-surface-container-high/60 relative overflow-hidden book-shadow">
-                  <button onClick={() => { if (confirm('Eliminare questo appunto?')) removeNoteMutation.mutate(note.id); }} className="absolute top-4 right-4 text-on-surface-variant/40 hover:text-rose-500 cursor-pointer">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                  <div className="pt-2 space-y-3">
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center text-[10px] font-sans font-semibold text-secondary tracking-widest uppercase">
-                        <span className="italic">{note.book ? `Libro: ${note.book.title}` : 'Pensiero Libero'}</span>
-                        <span>{new Date(note.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <h4 className="font-serif text-lg text-on-surface font-semibold italic">{note.title}</h4>
-                    </div>
-                    <div className="notebook-line text-sm text-on-surface-variant/90 font-serif leading-[2.3rem] italic pl-2 border-l border-red-200/50">
-                      {note.content}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-              {notes.length === 0 && (
-                <div className="text-center py-10 opacity-40 italic text-sm">Nessun appunto nel diario...</div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
       </div>
-
-      {/* Write Note Modal */}
-      <AnimatePresence>
-        {isAddingNote && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} className="bg-[#fbf9f6] max-w-lg w-full rounded-2xl p-6 md:p-8 border border-surface-container-high relative shadow-2xl">
-              <button onClick={() => setIsAddingNote(false)} className="absolute top-4 right-4 p-1"><X className="w-4 h-4" /></button>
-              <div className="space-y-6">
-                <h3 className="font-serif text-2xl text-on-surface font-semibold flex items-center gap-1.5"><Edit3 className="w-5 h-5 text-secondary" /> Sottoscrivi Appunto</h3>
-                <form onSubmit={handleSaveNote} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase block">Titolo</label>
-                    <input type="text" required value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} className="w-full px-3.5 py-2.5 bg-white border rounded-xl outline-none text-xs" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase block">Collega Libro (Opzionale)</label>
-                    <select value={noteBookId} onChange={(e) => setNoteBookId(e.target.value)} className="w-full px-3.5 py-2.5 bg-white border rounded-xl outline-none text-xs">
-                      <option value="">Nessun collegamento</option>
-                      {readings.map(r => (
-                        <option key={r.id} value={r.book?.id}>{r.book?.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase block">Riflessione</label>
-                    <textarea required rows={5} value={noteContent} onChange={(e) => setNoteContent(e.target.value)} className="w-full px-3.5 py-3 bg-white border rounded-xl outline-none font-serif text-xs italic" />
-                  </div>
-                  <div className="pt-4 flex justify-end gap-2">
-                    <button type="submit" disabled={addNoteMutation.isPending} className="px-6 py-2 bg-secondary text-white rounded-lg font-bold text-xs uppercase disabled:opacity-50">
-                      {addNoteMutation.isPending ? 'Salvataggio...' : 'Salva Appunto'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Book Detail Modal */}
       <AnimatePresence>

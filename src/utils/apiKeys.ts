@@ -117,6 +117,12 @@ export const ApiKeyManager = {
         'GROQ_API_KEY',
         'Motore di inferenza ultra-veloce per la chat Rù.',
         'Necessario per utilizzare i modelli Llama-3 tramite Groq Cloud.'
+      ),
+      ApiKeyManager.getDetails(
+        'Google Books API Key',
+        'GOOGLE_BOOKS_API_KEY',
+        'Migliora i limiti di ricerca e l\'affidabilità dei risultati.',
+        'Chiave opzionale per aumentare le quote di ricerca nel catalogo Google Books.'
       )
     ];
   }

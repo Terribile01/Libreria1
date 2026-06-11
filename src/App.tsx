@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import HomePage from './components/HomePage';
 import SearchPage from './components/SearchPage';
 import LibraryPage from './components/LibraryPage';
+import DiaryPage from './components/DiaryPage';
 import ListenPage from './components/ListenPage';
 import PersonalPage from './components/PersonalPage';
 import RuChat from './components/RuChat';
@@ -13,7 +14,7 @@ import { INITIAL_BOOKS, INITIAL_AUDIO_TRACKS } from './data';
 import { Book } from './types';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'library' | 'listen' | 'profile'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile'>('home');
   const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
   const [activeTrackId, setActiveTrackId] = useState<string>('at-1');
 
@@ -85,6 +86,10 @@ export default function App() {
       case 'library':
         return (
           <LibraryPage />
+        );
+      case 'diary':
+        return (
+          <DiaryPage />
         );
       case 'listen':
         return (
