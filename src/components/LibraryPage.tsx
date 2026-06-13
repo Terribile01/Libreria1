@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Bookmark, CheckCircle2, Trash2, X, BookOpen, Loader2, Sparkles } from 'lucide-react';
+import { Heart, Bookmark, CheckCircle2, Trash2, X, BookOpen, Loader2, Sparkles, Book as BookIcon } from 'lucide-react';
 import { Book } from '../types';
 import { BookService, Reading } from '../utils/database';
 import { useAuth } from '../context/AuthContext';
@@ -54,6 +54,22 @@ export default function LibraryPage() {
   const handleOpenDetail = (reading: Reading) => {
     setPoeticIntro(null);
     setSelectedBookDetail(reading);
+  };
+
+  const handleReadBook = async (reading: Reading) => {
+    if (reading.source_type === 'internal' && reading.file_path) {
+      try {
+        const signedUrl = await BookService.getFileUrl(reading.file_path);
+        // Per ora apriamo in una nuova scheda, preparando la struttura per i viewer futuri
+        window.open(signedUrl, '_blank');
+      } catch (err: any) {
+        alert("Errore nel recupero del file: " + err.message);
+      }
+    } else if (reading.external_url) {
+      window.open(reading.external_url, '_blank');
+    } else {
+      alert("Nessuna risorsa digitale disponibile per questo volume.");
+    }
   };
 
   const tabReadings = readings.filter(r => r.status === activeTab);
@@ -174,7 +190,13 @@ export default function LibraryPage() {
                     {isGeneratingIntro ? <span className="text-xs opacity-50 animate-pulse">Rù sta consultando le stelle per te...</span> : poeticIntro || selectedBookDetail.book.description}
                   </div>
                 </div>
-                <div className="border-t pt-5 flex justify-end">
+                <div className="border-t pt-5 flex justify-between items-center">
+                   <button
+                     onClick={() => handleReadBook(selectedBookDetail)}
+                     className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center gap-2 shadow-md hover:bg-primary/90 transition-all"
+                   >
+                     <BookIcon className="w-4 h-4" /> Leggi Opera
+                   </button>
                    <button onClick={() => { setSelectedBookDetail(null); setPoeticIntro(null); }} className="px-4 py-2 border rounded-xl text-xs font-bold uppercase">Esci</button>
                 </div>
               </div>

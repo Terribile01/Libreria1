@@ -6,6 +6,9 @@ export interface Book {
   category: 'Classici' | 'Poesia' | 'Romanzi' | 'Filosofia';
   description: string;
   status?: 'Preferiti' | 'Letti' | 'Da Leggere';
+  sourceType?: 'internal' | 'external';
+  filePath?: string;
+  externalUrl?: string;
   extraLabel?: string; // e.g. "GENNAIO 2024"
   notesCount?: number;
   chapters?: string[];
