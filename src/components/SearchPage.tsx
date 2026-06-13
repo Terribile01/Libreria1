@@ -31,6 +31,7 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
   const [manualCategory, setManualCategory] = useState('Romanzi');
   const [manualDescription, setManualDescription] = useState('');
   const [manualFile, setManualFile] = useState<File | null>(null);
+  const [smartUrl, setSmartUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   // External Search State
@@ -124,8 +125,7 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
       }
 
       return await BookService.addReading(user.id, book.id, 'Da Leggere', '', {
-        source_type: 'external',
-        external_url: externalBook.externalUrl
+        source_type: 'external'
       });
     },
     onSuccess: () => {
@@ -139,6 +139,29 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
 
   const handleAddToLibrary = (recBook: any) => {
     importMutation.mutate(recBook);
+  };
+
+  const handleSmartImport = async () => {
+    if (!smartUrl.includes('liberliber.it')) {
+      alert("Al momento l'importazione intelligente supporta solo Liber Liber.");
+      return;
+    }
+
+    // Simple heuristic-based extraction for Liber Liber URLs
+    // Example: https://www.liberliber.it/online/autori/d/dante-alighieri/la-divina-commedia/
+    try {
+      const parts = smartUrl.split('/').filter(Boolean);
+      const titleRaw = parts[parts.length - 1].replace(/-/g, ' ');
+      const authorRaw = parts[parts.length - 2].replace(/-/g, ' ');
+
+      const capitalize = (s: string) => s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+      setManualTitle(capitalize(titleRaw));
+      setManualAuthor(capitalize(authorRaw));
+      setManualDescription(`Opera digitalizzata da Liber Liber. Disponibile presso: ${smartUrl}`);
+    } catch {
+      alert("Impossibile estrarre i dati dall'URL. Inseriscili manualmente.");
+    }
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -478,6 +501,30 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-surface max-w-md w-full rounded-2xl p-8 shadow-2xl border border-surface-container-high relative">
               <button onClick={() => setIsAddingManual(false)} className="absolute top-4 right-4 p-2"><X className="w-4 h-4" /></button>
               <h3 className="font-serif text-2xl font-semibold mb-6">Aggiungi al Santuario</h3>
+
+              {/* Smart Import Section */}
+              <div className="mb-8 p-4 bg-primary/5 rounded-xl border border-primary/10 space-y-3">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3" /> Inserimento Intelligente (Liber Liber)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="Incolla URL Liber Liber..."
+                    value={smartUrl}
+                    onChange={(e) => setSmartUrl(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-white border rounded-lg text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSmartImport}
+                    className="px-3 py-2 bg-primary text-white rounded-lg text-[10px] font-bold uppercase"
+                  >
+                    Estrai
+                  </button>
+                </div>
+              </div>
+
               <form onSubmit={handleManualSubmit} className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Titolo</label>

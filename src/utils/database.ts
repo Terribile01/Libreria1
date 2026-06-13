@@ -23,8 +23,7 @@ export interface Reading {
   // New hybrid source fields
   source_type: 'internal' | 'external';
   file_path?: string;
-  external_url?: string;
-  book?: Book;
+  book?: Book & { file_url?: string, external_url?: string };
 }
 
 // Helper to map UI Book to Database Book
@@ -107,7 +106,7 @@ export const BookService = {
   },
 
   // Add reading (connect user to book)
-  addReading: async (userId: string, bookId: string, status: string = 'Da Leggere', note: string = '', extra?: Partial<Pick<Reading, 'source_type' | 'file_path' | 'external_url'>>) => {
+  addReading: async (userId: string, bookId: string, status: string = 'Da Leggere', note: string = '', extra?: Partial<Pick<Reading, 'source_type' | 'file_path'>>) => {
     const { data, error } = await supabase
       .from('readings')
       .insert([{
@@ -116,8 +115,7 @@ export const BookService = {
         status,
         note,
         source_type: extra?.source_type || 'external',
-        file_path: extra?.file_path,
-        external_url: extra?.external_url
+        file_path: extra?.file_path
       }])
       .select()
       .maybeSingle();
@@ -128,7 +126,7 @@ export const BookService = {
   },
 
   // Update reading status, note or hybrid fields
-  updateReading: async (readingId: string, updates: Partial<Pick<Reading, 'status' | 'note' | 'source_type' | 'file_path' | 'external_url'>>) => {
+  updateReading: async (readingId: string, updates: Partial<Pick<Reading, 'status' | 'note' | 'source_type' | 'file_path'>>) => {
     const { data, error } = await supabase
       .from('readings')
       .update(updates)

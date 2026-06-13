@@ -59,8 +59,8 @@ export default function LibraryPage() {
   const handleReadBook = async (reading: Reading) => {
     // Check internal file path (reading first, then book catalog)
     const filePath = reading.file_path || (reading.book as any)?.file_url;
-    // Check external URL (reading first, then book catalog)
-    const externalUrl = reading.external_url || (reading.book as any)?.external_url;
+    // Check external URL (always from book catalog in new schema)
+    const externalUrl = (reading.book as any)?.external_url;
 
     if (reading.source_type === 'internal' && filePath) {
       try {
