@@ -248,11 +248,27 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
                   <div className="relative group">
                     <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-[10px] overflow-x-auto leading-relaxed">
 {`-- 1. AGGIORNAMENTO SCHEMA TABELLE
+-- Tabella Libri (Aggiunta campi per file e link)
+ALTER TABLE books
+ADD COLUMN IF NOT EXISTS file_url TEXT,
+ADD COLUMN IF NOT EXISTS external_url TEXT;
+
+-- Tabella Readings
 ALTER TABLE readings
 ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')),
 ADD COLUMN IF NOT EXISTS file_path TEXT,
 ADD COLUMN IF NOT EXISTS external_url TEXT,
 ADD COLUMN IF NOT EXISTS note TEXT;
+
+-- RLS PER TABELLA BOOKS (Importante per errore "Permission Denied")
+-- Permetti a tutti (anche anonimi) di leggere i libri
+DROP POLICY IF EXISTS "Libri leggibili da tutti" ON books;
+CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);
+
+-- Permetti agli utenti autenticati di inserire nuovi libri nel catalogo
+DROP POLICY IF EXISTS "Chiunque può inserire libri" ON books;
+CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT
+TO authenticated WITH CHECK (true);
 
 -- Assicurati che la tabella notes esista per il Diario
 CREATE TABLE IF NOT EXISTS notes (
@@ -287,7 +303,7 @@ USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid(
                     </pre>
                     <button
                       onClick={() => {
-                        const sql = `-- AGGIORNAMENTO SCHEMA\nALTER TABLE readings ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')), ADD COLUMN IF NOT EXISTS file_path TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT, ADD COLUMN IF NOT EXISTS note TEXT;\n\nCREATE TABLE IF NOT EXISTS notes (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL, book_id UUID REFERENCES books ON DELETE SET NULL, title TEXT NOT NULL, content TEXT NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());\n\n-- BUCKET\nINSERT INTO storage.buckets (id, name, public) VALUES ('library-files', 'library-files', false) ON CONFLICT (id) DO NOTHING;\n\n-- POLICIES\nCREATE POLICY "Lettura file personali" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Caricamento file personali" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Cancellazione file personali" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);`;
+                        const sql = `-- AGGIORNAMENTO SCHEMA\nALTER TABLE books ADD COLUMN IF NOT EXISTS file_url TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT;\n\nALTER TABLE readings ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')), ADD COLUMN IF NOT EXISTS file_path TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT, ADD COLUMN IF NOT EXISTS note TEXT;\n\n-- RLS\nDROP POLICY IF EXISTS "Libri leggibili da tutti" ON books; CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);\nDROP POLICY IF EXISTS "Chiunque può inserire libri" ON books; CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT TO authenticated WITH CHECK (true);\n\nCREATE TABLE IF NOT EXISTS notes (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL, book_id UUID REFERENCES books ON DELETE SET NULL, title TEXT NOT NULL, content TEXT NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());\n\n-- BUCKET\nINSERT INTO storage.buckets (id, name, public) VALUES ('library-files', 'library-files', false) ON CONFLICT (id) DO NOTHING;\n\n-- POLICIES STORAGE\nCREATE POLICY "Lettura file personali" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Caricamento file personali" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Cancellazione file personali" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);`;
                         navigator.clipboard.writeText(sql);
                         alert('Script SQL completo copiato!');
                       }}

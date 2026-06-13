@@ -9,6 +9,8 @@ export interface DatabaseBook {
   category: string;
   description: string;
   created_at: string;
+  file_url?: string;
+  external_url?: string;
 }
 
 export interface Reading {
@@ -26,18 +28,20 @@ export interface Reading {
 }
 
 // Helper to map UI Book to Database Book
-const mapBookToDb = (book: Partial<Book>) => {
+const mapBookToDb = (book: Partial<Book> & { file_url?: string, external_url?: string }) => {
   const mapped: any = {};
   if (book.title !== undefined) mapped.title = book.title;
   if (book.author !== undefined) mapped.author = book.author;
   if (book.coverUrl !== undefined) mapped.cover_url = book.coverUrl;
   if (book.category !== undefined) mapped.category = book.category;
   if (book.description !== undefined) mapped.description = book.description;
+  if (book.file_url !== undefined) mapped.file_url = book.file_url;
+  if (book.external_url !== undefined) mapped.external_url = book.external_url;
   return mapped;
 };
 
 // Helper to map DB Book to UI Book
-const mapDbToBook = (dbBook: any): Book => {
+const mapDbToBook = (dbBook: any): Book & { file_url?: string, external_url?: string } => {
   return {
     id: dbBook.id,
     title: dbBook.title,
@@ -45,6 +49,8 @@ const mapDbToBook = (dbBook: any): Book => {
     coverUrl: dbBook.cover_url,
     category: dbBook.category,
     description: dbBook.description,
+    file_url: dbBook.file_url,
+    external_url: dbBook.external_url,
   };
 };
 
@@ -87,7 +93,7 @@ export const BookService = {
   },
 
   // Add book to catalog
-  addBookToCatalog: async (book: Omit<Book, 'id'>) => {
+  addBookToCatalog: async (book: Omit<Book, 'id'> & { file_url?: string, external_url?: string }) => {
     const dbBook = mapBookToDb(book);
     const { data, error } = await supabase
       .from('books')
