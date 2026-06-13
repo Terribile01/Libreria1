@@ -195,28 +195,22 @@ export const BookSearchService = {
   },
 
   /**
-   * Combined search - Enhanced to be more resilient and fast
+   * Combined search - Prioritizing quality and free sources
    */
   unifiedSearch: async (query: string): Promise<ExternalBook[]> => {
     console.log(`[UnifiedSearch] Starting search for: ${query}`);
 
-    // Create an array of promises but handle each individually to avoid one failing all
-    const searchPromises = [
-      BookSearchService.searchLiberLiber(query).catch(e => { console.error("LL Error", e); return []; }),
-      BookSearchService.searchGoogleBooks(query).catch(e => { console.error("GB Error", e); return []; }),
-      BookSearchService.searchOpenLibrary(query).catch(e => { console.error("OL Error", e); return []; }),
-      BookSearchService.searchGutenberg(query).catch(e => { console.error("PG Error", e); return []; })
-    ];
+    // Parallel calls with individual error handling
+    const [ll, pg, ol, gb] = await Promise.all([
+      BookSearchService.searchLiberLiber(query).catch(() => []),
+      BookSearchService.searchGutenberg(query).catch(() => []),
+      BookSearchService.searchOpenLibrary(query).catch(() => []),
+      BookSearchService.searchGoogleBooks(query).catch(() => [])
+    ]);
 
-    const resultsArray = await Promise.all(searchPromises);
-    const [llResults, gbResults, olResults, pgResults] = resultsArray;
+    // Strict Hierarchy: Liber Liber > Gutenberg > Open Library > Google Books
+    const all = [...ll, ...pg, ...ol, ...gb];
 
-    console.log(`[UnifiedSearch] Results - LL: ${llResults.length}, GB: ${gbResults.length}, OL: ${olResults.length}, PG: ${pgResults.length}`);
-
-    // Priority: Liber Liber (if found), then Google Books, then others
-    const all = [...llResults, ...gbResults, ...olResults, ...pgResults];
-
-    // Filter duplicates by title and author to be more effective across different sources
     const seen = new Set();
     return all.filter(book => {
       const key = `${book.title.toLowerCase().trim()}|${book.author.toLowerCase().trim()}`;
