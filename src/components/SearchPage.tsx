@@ -30,6 +30,8 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
   const [manualAuthor, setManualAuthor] = useState('');
   const [manualCategory, setManualCategory] = useState('Romanzi');
   const [manualDescription, setManualDescription] = useState('');
+  const [manualFile, setManualFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // External Search State
   const [externalResults, setExternalResults] = useState<ExternalBook[]>([]);
@@ -138,20 +140,47 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
     importMutation.mutate(recBook);
   };
 
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualTitle || !manualAuthor) return;
-    importMutation.mutate({
-      title: manualTitle,
-      author: manualAuthor,
-      category: manualCategory,
-      description: manualDescription,
-      coverUrl: 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300'
-    });
-    setIsAddingManual(false);
-    setManualTitle('');
-    setManualAuthor('');
-    setManualDescription('');
+    if (!manualTitle || !manualAuthor || !user) return;
+
+    setIsUploading(true);
+    try {
+      let filePath = '';
+      let sourceType: 'internal' | 'external' = 'external';
+
+      if (manualFile) {
+        const uploadRes = await BookService.uploadLibraryFile(user.id, manualFile);
+        filePath = uploadRes.filePath;
+        sourceType = 'internal';
+      }
+
+      // Add to catalog and library
+      const book = await BookService.addBookToCatalog({
+        title: manualTitle,
+        author: manualAuthor,
+        category: manualCategory as any,
+        description: manualDescription || 'Caricamento manuale nel Santuario.',
+        coverUrl: 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300'
+      });
+
+      await BookService.addReading(user.id, book.id, 'Da Leggere', '', {
+        source_type: sourceType,
+        file_path: filePath
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['readings'] });
+      setIsAddingManual(false);
+      setManualTitle('');
+      setManualAuthor('');
+      setManualDescription('');
+      setManualFile(null);
+      alert('Libro aggiunto con successo al Santuario!');
+    } catch (err: any) {
+      alert("Errore durante il salvataggio: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleAskRu = async (book: ExternalBook) => {
@@ -464,10 +493,23 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Descrizione (Opzionale)</label>
-                  <textarea rows={3} value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} className="w-full px-4 py-2.5 bg-white border rounded-xl text-sm" />
+                  <textarea rows={2} value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} className="w-full px-4 py-2.5 bg-white border rounded-xl text-sm" />
                 </div>
-                <button type="submit" className="w-full py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-md mt-4">
-                   Custodisci nel Santuario
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Carica File (PDF/ePub)</label>
+                  <input
+                    type="file"
+                    accept=".pdf,.epub"
+                    onChange={(e) => setManualFile(e.target.files?.[0] || null)}
+                    className="w-full px-4 py-2.5 bg-white border rounded-xl text-[10px] file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  className="w-full py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-md mt-4 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                   {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Salvataggio...</> : 'Custodisci nel Santuario'}
                 </button>
               </form>
             </motion.div>
