@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Lock, Shield, Key, Eye, EyeOff,
   CheckCircle2, AlertCircle, LogOut, Sparkles, Check,
-  Bookmark
+  Bookmark, Database, Copy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ApiKeyManager, ApiKeyStructure } from '../utils/apiKeys';
@@ -30,7 +30,7 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
     updateProfile,
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'api'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'api' | 'database'>('dashboard');
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -204,7 +204,10 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
             <div className="bg-surface-container-lowest border rounded-2xl p-2.5 flex flex-col gap-1">
               <button onClick={() => setActiveTab('dashboard')} className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold text-left flex items-center gap-2.5 ${activeTab === 'dashboard' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}><User className="w-4 h-4" /> Pannello</button>
               {profile?.role === 'Amministratore' && (
-                <button onClick={() => setActiveTab('api')} className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold text-left flex items-center gap-2.5 ${activeTab === 'api' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}><Key className="w-4 h-4" /> Chiavi API</button>
+                <>
+                  <button onClick={() => setActiveTab('api')} className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold text-left flex items-center gap-2.5 ${activeTab === 'api' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}><Key className="w-4 h-4" /> Chiavi API</button>
+                  <button onClick={() => setActiveTab('database')} className={`w-full px-4 py-2.5 rounded-xl text-xs font-bold text-left flex items-center gap-2.5 ${activeTab === 'database' ? 'bg-primary text-white' : 'text-on-surface-variant'}`}><Database className="w-4 h-4" /> Database</button>
+                </>
               )}
             </div>
           </div>
@@ -226,6 +229,59 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
                   {profileMessage.text && <div className={`p-2 text-xs rounded-lg ${profileMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{profileMessage.text}</div>}
                   <button type="submit" className="px-4 py-2 bg-primary text-white text-xs font-bold uppercase rounded-xl">Salva</button>
                 </form>
+              </div>
+            )}
+
+            {activeTab === 'database' && profile?.role === 'Amministratore' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="font-serif text-2xl font-semibold">Gestione Database</h2>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl space-y-3">
+                  <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                    <Shield className="w-4 h-4" /> Aggiornamento Schema Readings
+                  </h3>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    Esegui questo SQL nel pannello di Supabase per abilitare il sistema di studio ibrido (file interni + link esterni).
+                  </p>
+                  <div className="relative group">
+                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-[10px] overflow-x-auto">
+                      {`-- 1. Aggiunta campi per sistema ibrido
+ALTER TABLE readings
+ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')),
+ADD COLUMN IF NOT EXISTS file_path TEXT,
+ADD COLUMN IF NOT EXISTS external_url TEXT;
+
+-- 2. Configurazione Storage Bucket
+-- Crea un bucket chiamato 'library-files' in Supabase Storage
+
+-- 3. Policy per lo Storage (Esegui queste se non le hai configurate)
+-- Permetti agli utenti autenticati di caricare file nella loro cartella
+-- Nome bucket: 'library-files'`}
+                    </pre>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')), ADD COLUMN IF NOT EXISTS file_path TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT;`);
+                        alert('SQL copiato negli appunti!');
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-md transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl space-y-3">
+                   <h3 className="text-sm font-bold text-amber-800 flex items-center gap-2">
+                     <AlertCircle className="w-4 h-4" /> Istruzioni Storage
+                   </h3>
+                   <ul className="text-xs text-amber-700 space-y-2 list-disc pl-4 leading-relaxed">
+                     <li>Crea il bucket <strong>'library-files'</strong> nella sezione Storage.</li>
+                     <li>Assicurati che sia impostato come <strong>Privato</strong>.</li>
+                     <li>Configura le policy RLS per permettere <code>SELECT</code> e <code>INSERT</code> solo a <code>(auth.uid() = owner)</code>.</li>
+                   </ul>
+                </div>
               </div>
             )}
 
