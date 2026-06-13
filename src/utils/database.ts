@@ -18,6 +18,10 @@ export interface Reading {
   status: 'Da Leggere' | 'Letti' | 'Preferiti';
   note: string;
   created_at: string;
+  // New hybrid source fields
+  source_type: 'internal' | 'external';
+  file_path?: string;
+  external_url?: string;
   book?: DatabaseBook;
 }
 
@@ -97,10 +101,18 @@ export const BookService = {
   },
 
   // Add reading (connect user to book)
-  addReading: async (userId: string, bookId: string, status: string = 'Da Leggere', note: string = '') => {
+  addReading: async (userId: string, bookId: string, status: string = 'Da Leggere', note: string = '', extra?: Partial<Pick<Reading, 'source_type' | 'file_path' | 'external_url'>>) => {
     const { data, error } = await supabase
       .from('readings')
-      .insert([{ user_id: userId, book_id: bookId, status, note }])
+      .insert([{
+        user_id: userId,
+        book_id: bookId,
+        status,
+        note,
+        source_type: extra?.source_type || 'external',
+        file_path: extra?.file_path,
+        external_url: extra?.external_url
+      }])
       .select()
       .maybeSingle();
 
@@ -109,8 +121,8 @@ export const BookService = {
     return data as Reading;
   },
 
-  // Update reading status or note
-  updateReading: async (readingId: string, updates: Partial<Pick<Reading, 'status' | 'note'>>) => {
+  // Update reading status, note or hybrid fields
+  updateReading: async (readingId: string, updates: Partial<Pick<Reading, 'status' | 'note' | 'source_type' | 'file_path' | 'external_url'>>) => {
     const { data, error } = await supabase
       .from('readings')
       .update(updates)
@@ -130,6 +142,30 @@ export const BookService = {
       .eq('id', readingId);
 
     if (error) throw error;
+  },
+
+  // Storage Logic: Upload file to 'library-files' bucket
+  uploadLibraryFile: async (userId: string, file: File) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('library-files')
+      .upload(filePath, file);
+
+    if (error) throw error;
+    return { filePath: data.path };
+  },
+
+  // Get temporary download URL for a file
+  getFileUrl: async (filePath: string) => {
+    const { data, error } = await supabase.storage
+      .from('library-files')
+      .createSignedUrl(filePath, 3600); // URL valid for 1 hour
+
+    if (error) throw error;
+    return data.signedUrl;
   }
 };
 
@@ -147,7 +183,7 @@ export const DiaryService = {
   // Get all user notes (mapped to readings table per user request)
   getUserNotes: async (userId: string) => {
     const { data, error } = await supabase
-      .from('readings') // Changed from 'notes' to 'readings'
+      .from('readings')
       .select(`
         *,
         book:books(*)
@@ -158,8 +194,6 @@ export const DiaryService = {
 
     if (error) throw error;
 
-    // Map reading.note to the DiaryNote structure if needed, or just return them
-    // For now, aligning with the existing UI expectations by mapping note to content
     return (data || []).map((r: any) => ({
       id: r.id,
       user_id: r.user_id,
@@ -196,16 +230,14 @@ export const DiaryService = {
       }
     }
 
-    // If no book_id or no existing reading, we might need to create one
-    // But readings requires a book_id. This is a logic constraint of using 'readings' for 'notes'.
-    // We'll assume the user wants notes tied to readings.
     const { data, error } = await supabase
       .from('readings')
       .insert([{
         user_id: note.user_id,
         book_id: note.book_id,
         note: note.content,
-        status: 'Da Leggere'
+        status: 'Da Leggere',
+        source_type: 'external'
       }])
       .select()
       .maybeSingle();
