@@ -57,16 +57,20 @@ export default function LibraryPage() {
   };
 
   const handleReadBook = async (reading: Reading) => {
-    if (reading.source_type === 'internal' && reading.file_path) {
+    // Check internal file path (reading first, then book catalog)
+    const filePath = reading.file_path || (reading.book as any)?.file_url;
+    // Check external URL (reading first, then book catalog)
+    const externalUrl = reading.external_url || (reading.book as any)?.external_url;
+
+    if (reading.source_type === 'internal' && filePath) {
       try {
-        const signedUrl = await BookService.getFileUrl(reading.file_path);
-        // Per ora apriamo in una nuova scheda, preparando la struttura per i viewer futuri
+        const signedUrl = await BookService.getFileUrl(filePath);
         window.open(signedUrl, '_blank');
       } catch (err: any) {
         alert("Errore nel recupero del file: " + err.message);
       }
-    } else if (reading.external_url) {
-      window.open(reading.external_url, '_blank');
+    } else if (externalUrl) {
+      window.open(externalUrl, '_blank');
     } else {
       alert("Nessuna risorsa digitale disponibile per questo volume.");
     }

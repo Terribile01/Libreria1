@@ -118,7 +118,8 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
           author: externalBook.author,
           coverUrl: externalBook.coverUrl,
           category: externalBook.category || 'Romanzi',
-          description: externalBook.description || externalBook.quote || 'Nessuna descrizione disponibile.'
+          description: externalBook.description || externalBook.quote || 'Nessuna descrizione disponibile.',
+          external_url: externalBook.externalUrl
         });
       }
 
@@ -161,7 +162,8 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
         author: manualAuthor,
         category: manualCategory as any,
         description: manualDescription || 'Caricamento manuale nel Santuario.',
-        coverUrl: 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300'
+        coverUrl: 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300',
+        file_url: filePath // Passing file path to catalog as file_url
       });
 
       await BookService.addReading(user.id, book.id, 'Da Leggere', '', {
