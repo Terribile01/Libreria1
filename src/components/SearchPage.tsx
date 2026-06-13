@@ -120,7 +120,10 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
         });
       }
 
-      return await BookService.addReading(user.id, book.id);
+      return await BookService.addReading(user.id, book.id, 'Da Leggere', '', {
+        source_type: 'external',
+        external_url: externalBook.externalUrl
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['readings'] });
