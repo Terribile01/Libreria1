@@ -238,39 +238,70 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
                   <h2 className="font-serif text-2xl font-semibold">Gestione Database & Cloud</h2>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl space-y-3">
-                  <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> Script di Configurazione Totale
+                <div className="bg-red-50 border border-red-100 p-4 rounded-xl space-y-3">
+                  <h3 className="text-sm font-bold text-red-800 flex items-center gap-2">
+                    <Shield className="w-4 h-4" /> RISOLUZIONE PERMISSION DENIED (TABELLA BOOKS)
                   </h3>
-                  <p className="text-xs text-blue-700 leading-relaxed">
-                    Esegui questo script nel SQL Editor di Supabase per configurare tabelle e storage in un colpo solo.
+                  <p className="text-xs text-red-700 leading-relaxed font-bold">
+                    Esegui questo script nel SQL Editor di Supabase per sbloccare definitivamente l'inserimento dei libri.
                   </p>
                   <div className="relative group">
                     <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-[10px] overflow-x-auto leading-relaxed">
-{`-- 1. AGGIORNAMENTO SCHEMA TABELLE
--- Tabella Libri (Aggiunta campi per file e link)
-ALTER TABLE books
-ADD COLUMN IF NOT EXISTS file_url TEXT,
-ADD COLUMN IF NOT EXISTS external_url TEXT;
+{`-- 1. SBLOCCO PERMESSI SCHEMA E TABELLE
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated;
 
--- Tabella Readings
+-- 2. DISABILITA O REIMPOSTA RLS SU BOOKS (SCELTA AGGRESSIVA PER RISOLVERE)
+-- Se vuoi risolvere subito, puoi anche disabilitare RLS per la tabella books:
+-- ALTER TABLE books DISABLE ROW LEVEL SECURITY;
+
+-- OPPURE esegui queste policy ultra-permissive:
+ALTER TABLE books ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Libri leggibili da tutti" ON books;
+CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Chiunque può inserire libri" ON books;
+CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Chiunque può aggiornare libri" ON books;
+CREATE POLICY "Chiunque può aggiornare libri" ON books FOR UPDATE USING (true);
+
+-- 3. AGGIORNAMENTO COLONNE (Assicurati che esistano)
+ALTER TABLE books ADD COLUMN IF NOT EXISTS file_url TEXT;
+ALTER TABLE books ADD COLUMN IF NOT EXISTS external_url TEXT;`}
+                    </pre>
+                    <button
+                      onClick={() => {
+                        const sql = `GRANT USAGE ON SCHEMA public TO anon, authenticated;\nGRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;\nGRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;\nALTER TABLE books ENABLE ROW LEVEL SECURITY;\nDROP POLICY IF EXISTS "Libri leggibili da tutti" ON books; CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);\nDROP POLICY IF EXISTS "Chiunque può inserire libri" ON books; CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT WITH CHECK (true);\nDROP POLICY IF EXISTS "Chiunque può aggiornare libri" ON books; CREATE POLICY "Chiunque può aggiornare libri" ON books FOR UPDATE USING (true);\nALTER TABLE books ADD COLUMN IF NOT EXISTS file_url TEXT;\nALTER TABLE books ADD COLUMN IF NOT EXISTS external_url TEXT;`;
+                        navigator.clipboard.writeText(sql);
+                        alert('Script di sblocco copiato!');
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-md transition-all opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-white text-[10px]"
+                    >
+                      <Copy className="w-3.5 h-3.5" /> Copia Sblocco
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl space-y-3">
+                  <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                    <Database className="w-4 h-4" /> Script di Configurazione Completo
+                  </h3>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    Configurazione per Diario e Sistema Ibrido (Readings).
+                  </p>
+                  <div className="relative group">
+                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-[10px] overflow-x-auto leading-relaxed">
+{`-- 1. AGGIORNAMENTO TABELLA READINGS
 ALTER TABLE readings
 ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')),
 ADD COLUMN IF NOT EXISTS file_path TEXT,
 ADD COLUMN IF NOT EXISTS external_url TEXT,
 ADD COLUMN IF NOT EXISTS note TEXT;
 
--- RLS PER TABELLA BOOKS (Importante per errore "Permission Denied")
--- Permetti a tutti (anche anonimi) di leggere i libri
-DROP POLICY IF EXISTS "Libri leggibili da tutti" ON books;
-CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);
-
--- Permetti agli utenti autenticati di inserire nuovi libri nel catalogo
-DROP POLICY IF EXISTS "Chiunque può inserire libri" ON books;
-CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT
-TO authenticated WITH CHECK (true);
-
--- Assicurati che la tabella notes esista per il Diario
+-- 2. TABELLA NOTES PER DIARIO
 CREATE TABLE IF NOT EXISTS notes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
@@ -303,7 +334,7 @@ USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid(
                     </pre>
                     <button
                       onClick={() => {
-                        const sql = `-- AGGIORNAMENTO SCHEMA\nALTER TABLE books ADD COLUMN IF NOT EXISTS file_url TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT;\n\nALTER TABLE readings ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')), ADD COLUMN IF NOT EXISTS file_path TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT, ADD COLUMN IF NOT EXISTS note TEXT;\n\n-- RLS\nDROP POLICY IF EXISTS "Libri leggibili da tutti" ON books; CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);\nDROP POLICY IF EXISTS "Chiunque può inserire libri" ON books; CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT TO authenticated WITH CHECK (true);\n\nCREATE TABLE IF NOT EXISTS notes (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL, book_id UUID REFERENCES books ON DELETE SET NULL, title TEXT NOT NULL, content TEXT NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());\n\n-- BUCKET\nINSERT INTO storage.buckets (id, name, public) VALUES ('library-files', 'library-files', false) ON CONFLICT (id) DO NOTHING;\n\n-- POLICIES STORAGE\nCREATE POLICY "Lettura file personali" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Caricamento file personali" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Cancellazione file personali" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);`;
+                        const sql = `-- RISOLUZIONE PERMISSION DENIED\nGRANT ALL ON TABLE books TO authenticated, anon, service_role;\nDROP POLICY IF EXISTS "Chiunque può inserire libri" ON books; CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT WITH CHECK (true);\n\n-- AGGIORNAMENTO SCHEMA\nALTER TABLE books ADD COLUMN IF NOT EXISTS file_url TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT;\n\nALTER TABLE readings ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')), ADD COLUMN IF NOT EXISTS file_path TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT, ADD COLUMN IF NOT EXISTS note TEXT;\n\nCREATE TABLE IF NOT EXISTS notes (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL, book_id UUID REFERENCES books ON DELETE SET NULL, title TEXT NOT NULL, content TEXT NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());\n\n-- BUCKET\nINSERT INTO storage.buckets (id, name, public) VALUES ('library-files', 'library-files', false) ON CONFLICT (id) DO NOTHING;\n\n-- POLICIES STORAGE\nCREATE POLICY "Lettura file personali" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Caricamento file personali" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Cancellazione file personali" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);`;
                         navigator.clipboard.writeText(sql);
                         alert('Script SQL completo copiato!');
                       }}
