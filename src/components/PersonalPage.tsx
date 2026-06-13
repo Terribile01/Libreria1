@@ -235,51 +235,77 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
             {activeTab === 'database' && profile?.role === 'Amministratore' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h2 className="font-serif text-2xl font-semibold">Gestione Database</h2>
+                  <h2 className="font-serif text-2xl font-semibold">Gestione Database & Cloud</h2>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl space-y-3">
                   <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> Aggiornamento Schema Readings
+                    <Shield className="w-4 h-4" /> Script di Configurazione Totale
                   </h3>
                   <p className="text-xs text-blue-700 leading-relaxed">
-                    Esegui questo SQL nel pannello di Supabase per abilitare il sistema di studio ibrido (file interni + link esterni).
+                    Esegui questo script nel SQL Editor di Supabase per configurare tabelle e storage in un colpo solo.
                   </p>
                   <div className="relative group">
-                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-[10px] overflow-x-auto">
-                      {`-- 1. Aggiunta campi per sistema ibrido
+                    <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-[10px] overflow-x-auto leading-relaxed">
+{`-- 1. AGGIORNAMENTO SCHEMA TABELLE
 ALTER TABLE readings
 ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')),
 ADD COLUMN IF NOT EXISTS file_path TEXT,
-ADD COLUMN IF NOT EXISTS external_url TEXT;
+ADD COLUMN IF NOT EXISTS external_url TEXT,
+ADD COLUMN IF NOT EXISTS note TEXT;
 
--- 2. Configurazione Storage Bucket
--- Crea un bucket chiamato 'library-files' in Supabase Storage
+-- Assicurati che la tabella notes esista per il Diario
+CREATE TABLE IF NOT EXISTS notes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  book_id UUID REFERENCES books ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- 3. Policy per lo Storage (Esegui queste se non le hai configurate)
--- Permetti agli utenti autenticati di caricare file nella loro cartella
--- Nome bucket: 'library-files'`}
+-- 2. CREAZIONE BUCKET PER FILE PDF/EPUB
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('library-files', 'library-files', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- 3. RLS PER STORAGE (ACCESSO PRIVATO)
+-- Permetti lettura dei propri file
+CREATE POLICY "Lettura file personali" ON storage.objects
+FOR SELECT TO authenticated
+USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Permetti caricamento nella propria cartella
+CREATE POLICY "Caricamento file personali" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Permetti eliminazione dei propri file
+CREATE POLICY "Cancellazione file personali" ON storage.objects
+FOR DELETE TO authenticated
+USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);`}
                     </pre>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(`ALTER TABLE readings ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')), ADD COLUMN IF NOT EXISTS file_path TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT;`);
-                        alert('SQL copiato negli appunti!');
+                        const sql = `-- AGGIORNAMENTO SCHEMA\nALTER TABLE readings ADD COLUMN IF NOT EXISTS source_type TEXT DEFAULT 'external' CHECK (source_type IN ('internal', 'external')), ADD COLUMN IF NOT EXISTS file_path TEXT, ADD COLUMN IF NOT EXISTS external_url TEXT, ADD COLUMN IF NOT EXISTS note TEXT;\n\nCREATE TABLE IF NOT EXISTS notes (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL, book_id UUID REFERENCES books ON DELETE SET NULL, title TEXT NOT NULL, content TEXT NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());\n\n-- BUCKET\nINSERT INTO storage.buckets (id, name, public) VALUES ('library-files', 'library-files', false) ON CONFLICT (id) DO NOTHING;\n\n-- POLICIES\nCREATE POLICY "Lettura file personali" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Caricamento file personali" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);\nCREATE POLICY "Cancellazione file personali" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);`;
+                        navigator.clipboard.writeText(sql);
+                        alert('Script SQL completo copiato!');
                       }}
-                      className="absolute top-2 right-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-md transition-all opacity-0 group-hover:opacity-100"
+                      className="absolute top-2 right-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-md transition-all opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-white text-[10px]"
                     >
-                      <Copy className="w-3.5 h-3.5 text-white" />
+                      <Copy className="w-3.5 h-3.5" /> Copia Tutto
                     </button>
                   </div>
                 </div>
 
                 <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl space-y-3">
                    <h3 className="text-sm font-bold text-amber-800 flex items-center gap-2">
-                     <AlertCircle className="w-4 h-4" /> Istruzioni Storage
+                     <AlertCircle className="w-4 h-4" /> Note Importanti
                    </h3>
                    <ul className="text-xs text-amber-700 space-y-2 list-disc pl-4 leading-relaxed">
-                     <li>Crea il bucket <strong>'library-files'</strong> nella sezione Storage.</li>
-                     <li>Assicurati che sia impostato come <strong>Privato</strong>.</li>
-                     <li>Configura le policy RLS per permettere <code>SELECT</code> e <code>INSERT</code> solo a <code>(auth.uid() = owner)</code>.</li>
+                     <li>Se ricevi errore "policy already exists", significa che le policy sono già attive.</li>
+                     <li>La cartella nello storage verrà creata automaticamente come <code>ID_UTENTE/nome-file.pdf</code>.</li>
+                     <li>Il limite di caricamento predefinito di Supabase è 50MB.</li>
                    </ul>
                 </div>
               </div>

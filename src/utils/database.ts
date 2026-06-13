@@ -22,7 +22,7 @@ export interface Reading {
   source_type: 'internal' | 'external';
   file_path?: string;
   external_url?: string;
-  book?: DatabaseBook;
+  book?: Book;
 }
 
 // Helper to map UI Book to Database Book
@@ -180,64 +180,34 @@ export interface DiaryNote {
 }
 
 export const DiaryService = {
-  // Get all user notes (mapped to readings table per user request)
+  // Get all user notes from the 'notes' table
   getUserNotes: async (userId: string) => {
     const { data, error } = await supabase
-      .from('readings')
+      .from('notes')
       .select(`
         *,
         book:books(*)
       `)
       .eq('user_id', userId)
-      .not('note', 'is', null) // Filter for records that have notes
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return (data || []).map((r: any) => ({
-      id: r.id,
-      user_id: r.user_id,
-      book_id: r.book_id,
-      title: r.book?.title ? `Riflessione su ${r.book.title}` : 'Appunto Personale',
-      content: r.note || '',
-      created_at: r.created_at,
-      book: r.book ? mapDbToBook(r.book) : undefined
+    return (data || []).map((n: any) => ({
+      ...n,
+      book: n.book ? mapDbToBook(n.book) : undefined
     })) as DiaryNote[];
   },
 
-  // Create new note (mapped to update or insert in readings table)
+  // Create new note in 'notes' table
   addNote: async (note: Omit<DiaryNote, 'id' | 'created_at'>) => {
-    // Check if a reading already exists for this user and book
-    if (note.book_id) {
-      const { data: existing } = await supabase
-        .from('readings')
-        .select('id')
-        .eq('user_id', note.user_id)
-        .eq('book_id', note.book_id)
-        .maybeSingle();
-
-      if (existing) {
-        // Update existing reading with the note
-        const { data, error } = await supabase
-          .from('readings')
-          .update({ note: note.content })
-          .eq('id', existing.id)
-          .select()
-          .maybeSingle();
-
-        if (error) throw error;
-        return data;
-      }
-    }
-
     const { data, error } = await supabase
-      .from('readings')
+      .from('notes')
       .insert([{
         user_id: note.user_id,
         book_id: note.book_id,
-        note: note.content,
-        status: 'Da Leggere',
-        source_type: 'external'
+        title: note.title,
+        content: note.content
       }])
       .select()
       .maybeSingle();
@@ -248,13 +218,9 @@ export const DiaryService = {
 
   // Update note
   updateNote: async (noteId: string, updates: Partial<Pick<DiaryNote, 'title' | 'content' | 'book_id'>>) => {
-    const dbUpdates: any = {};
-    if (updates.content !== undefined) dbUpdates.note = updates.content;
-    if (updates.book_id !== undefined) dbUpdates.book_id = updates.book_id;
-
     const { data, error } = await supabase
-      .from('readings')
-      .update(dbUpdates)
+      .from('notes')
+      .update(updates)
       .eq('id', noteId)
       .select()
       .maybeSingle();
@@ -263,11 +229,11 @@ export const DiaryService = {
     return data;
   },
 
-  // Remove note (actually clears the note field in readings)
+  // Remove note
   removeNote: async (noteId: string) => {
     const { error } = await supabase
-      .from('readings')
-      .update({ note: null })
+      .from('notes')
+      .delete()
       .eq('id', noteId);
 
     if (error) throw error;
