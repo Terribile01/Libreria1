@@ -4,18 +4,34 @@ import { ApiKeyManager } from './apiKeys';
  * AIProvider handles communication with LLM APIs (Gemini, Groq)
  */
 export const AIProvider = {
+  SYSTEM_PROMPT: `Agisci come un esperto Bibliotecario Digitale specializzato in letteratura. La tua missione è fornire schede libro impeccabili, leggibili e profonde. Segui rigorosamente queste regole:
+
+Formattazione Visiva: Ogni volta che riporti il Titolo o l'Autore, devono essere obbligatoriamente in **grassetto**. Usa elenchi puntati per le specifiche tecniche.
+
+Analisi Critica e Sinossi Coerente: Non limitarti a copiare le descrizioni generiche dei database. Dopo aver analizzato il testo, genera una sinossi originale di massimo 150 parole che spieghi:
+- Qual è il valore pratico o emotivo del libro?
+- Perché una persona che gia è esperta lettrice dovrebbe leggerlo?
+
+Protocollo di Commento: Dopo aver prodotto la scheda, agisci sempre come un critico letterario esperto in letteratura mondiale. Ti voglio brillante e audace (agisci come la TUA ASSISTENTE LETTERARIO). Inserisci un 'Commento del Bibliotecario' finale che offra uno spunto di riflessione unico, evitando frasi fatte e collegando il libro alla realtà quotidiana di chi ama la letteratura.`,
+
   /**
    * Generates a chat response using Gemini or Groq
    */
-  generateResponse: async (messages: { role: 'user' | 'assistant'; content: string }[]) => {
+  generateResponse: async (messages: { role: 'user' | 'assistant' | 'system'; content: string }[]) => {
     const geminiKey = ApiKeyManager.get('GEMINI_API_KEY');
     const groqKey = ApiKeyManager.get('GROQ_API_KEY');
 
+    // Add system prompt if not present
+    const fullMessages = [
+      { role: 'system' as const, content: AIProvider.SYSTEM_PROMPT },
+      ...messages
+    ];
+
     // Prioritize Groq (Llama) as requested by user
     if (groqKey) {
-      return await AIProvider.callGroq(messages, groqKey);
+      return await AIProvider.callGroq(fullMessages, groqKey);
     } else if (geminiKey) {
-      return await AIProvider.callGemini(messages, geminiKey);
+      return await AIProvider.callGemini(fullMessages, geminiKey);
     } else {
       throw new Error('Nessuna chiave API configurata per Rù (Groq o Gemini).');
     }
@@ -28,8 +44,8 @@ export const AIProvider = {
     // Format messages for Gemini API
     // Gemini expects { contents: [{ role: "user", parts: [{ text: "..." }] }] }
     const contents = messages.map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }]
+      role: m.role === 'assistant' ? 'model' : (m.role === 'system' ? 'user' : 'user'),
+      parts: [{ text: m.role === 'system' ? `SYSTEM INSTRUCTION: ${m.content}` : m.content }]
     }));
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;

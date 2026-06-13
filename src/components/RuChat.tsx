@@ -11,7 +11,7 @@ interface Message {
 export default function RuChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Benvenuto nel Santuario. Sono Rù, la tua guida letteraria. Come posso aiutarti nella tua ricerca di bellezza e conoscenza oggi?' }
+    { role: 'assistant', content: 'Benvenuta Vale :). Sono Rù, la tua guida letteraria. Come posso aiutarti nella tua ricerca di bellezza e conoscenza oggi?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +81,7 @@ export default function RuChat() {
                 </div>
                 <div>
                   <h3 className="font-serif font-bold text-sm">Rù</h3>
-                  <p className="text-[10px] text-white/70">Assistente del Santuario</p>
+                  <p className="text-[10px] text-white/70 uppercase font-bold tracking-tighter">TUA ASSISTENTE LETTERARIO</p>
                 </div>
               </div>
               <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors cursor-pointer">
