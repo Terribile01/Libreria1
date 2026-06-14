@@ -10,7 +10,7 @@ export default function Footer({ onNavigate }: FooterProps) {
           onClick={() => onNavigate('home')}
           className="font-serif text-2xl text-primary font-bold tracking-wider cursor-pointer hover:opacity-80 transition-all duration-300"
         >
-          LEGGO
+          Rù
         </div>
 
         <nav className="flex flex-wrap justify-center gap-8 md:gap-12 text-sm font-semibold tracking-widest uppercase text-on-surface-variant/70">
@@ -35,10 +35,18 @@ export default function Footer({ onNavigate }: FooterProps) {
           <a href="#termini" className="hover:text-primary transition-colors">
             Termini
           </a>
+          <a
+            href="https://wa.me/393791038253"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors flex items-center gap-1.5"
+          >
+            Supporto Tecnico
+          </a>
         </nav>
 
         <p className="font-sans text-xs tracking-wide text-on-surface-variant/50 mt-4 italic">
-          © {new Date().getFullYear()} LEGGO. Un rifugio silenzioso per lettori liberi e appassionati.
+          © {new Date().getFullYear()} Rù. Un rifugio silenzioso per lettori liberi e appassionati.
         </p>
       </div>
     </footer>

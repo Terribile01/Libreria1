@@ -20,12 +20,12 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
   return (
     <header className="bg-surface/85 backdrop-blur-md sticky top-0 z-50 shadow-[0_15px_35px_rgba(83,98,79,0.03)] border-b border-surface-container/30 transition-all duration-300">
       <nav className="flex justify-between items-center px-4 md:px-16 py-4 max-w-7xl mx-auto">
-        {/* Logo - LEGGO */}
+        {/* Logo - Rù */}
         <div 
           onClick={() => setCurrentPage('home')}
           className="font-serif text-3xl text-primary font-bold tracking-wider cursor-pointer hover:opacity-90 select-none transition-all duration-300 flex items-center gap-1.5"
         >
-          LEGGO
+          Rù
         </div>
 
         {/* Center Links (Desktop) */}
