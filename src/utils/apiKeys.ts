@@ -123,6 +123,12 @@ export const ApiKeyManager = {
         'GOOGLE_BOOKS_API_KEY',
         'Migliora i limiti di ricerca e l\'affidabilità dei risultati.',
         'Chiave opzionale per aumentare le quote di ricerca nel catalogo Google Books.'
+      ),
+      ApiKeyManager.getDetails(
+        'Pollinations API Key',
+        'POLLINATIONS_API_KEY',
+        'Generazione di immagini avanzata via Pollinations.ai.',
+        'Necessario per la creazione di immagini poetiche di alta qualità tramite il modello Flux.'
       )
     ];
   }
