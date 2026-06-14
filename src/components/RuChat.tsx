@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Send, X, Bot, User, Sparkles, Loader2, Mic, MicOff, Volume2 } from 'lucide-react';
+import { MessageSquare, Send, X, Bot, User, Sparkles, Loader2, Mic, MicOff, Volume2, Download, ExternalLink, FileText } from 'lucide-react';
 import { AIProvider } from '../utils/aiProvider';
 
 interface Message {
@@ -8,19 +8,32 @@ interface Message {
   content: string;
 }
 
-// Simple markdown-ish formatter for bold and images
+// Simple markdown-ish formatter for bold, images and links
 const FormattedMessage = ({ content }: { content: string }) => {
   // Regex for images: ![desc](url)
   const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
+  // Regex for URLs
+  const urlRegex = /(https?:\/\/[^\s)]+)/g;
 
-  // Split content by images
-  const parts = content.split(imageRegex);
-  const elements = [];
+  const renderTextWithLinks = (text: string) => {
+    return text.split(urlRegex).map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary font-bold underline inline-flex items-center gap-1 hover:text-primary-hover"
+          >
+            {part} <ExternalLink className="w-3 h-3" />
+          </a>
+        );
+      }
+      return part;
+    });
+  };
 
-  let contentIndex = 0;
-  const matches = Array.from(content.matchAll(imageRegex));
-
-  // This is a bit simplified, let's just handle basic bolding and paragraphs
   const renderText = (text: string) => {
     return text.split('\n').map((line, i) => (
       <React.Fragment key={i}>
@@ -28,14 +41,16 @@ const FormattedMessage = ({ content }: { content: string }) => {
           if (part.startsWith('**') && part.endsWith('**')) {
             return <strong key={j}>{part.slice(2, -2)}</strong>;
           }
-          return part;
+          return renderTextWithLinks(part);
         })}
         {i < text.split('\n').length - 1 && <br />}
       </React.Fragment>
     ));
   };
 
-  // If there are images, we need to interleave them
+  const elements = [];
+  const matches = Array.from(content.matchAll(imageRegex));
+
   if (matches.length > 0) {
     let lastIndex = 0;
     content.replace(imageRegex, (match, alt, url, offset) => {
@@ -43,18 +58,22 @@ const FormattedMessage = ({ content }: { content: string }) => {
       elements.push(<div key={`text-${offset}`}>{renderText(content.substring(lastIndex, offset))}</div>);
       // Add image
       elements.push(
-        <div key={`img-${offset}`} className="my-3 rounded-lg overflow-hidden border border-surface-container-high shadow-sm">
-          <img src={url} alt={alt} className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500" />
-          <div className="p-2 bg-surface-container-low flex justify-between items-center">
-            <span className="text-[10px] text-on-surface-variant italic truncate mr-2">{alt}</span>
+        <div key={`img-${offset}`} className="my-3 rounded-2xl overflow-hidden border border-surface-container-high shadow-lg bg-white">
+          <img
+            src={url}
+            alt={alt}
+            className="w-full h-auto object-cover hover:scale-105 transition-transform duration-700"
+          />
+          <div className="p-3 bg-surface-container-low flex justify-between items-center border-t border-surface-container-high">
+            <span className="text-[10px] text-on-surface-variant font-medium italic truncate mr-4">{alt}</span>
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-primary font-bold hover:underline shrink-0"
-              download
+              className="px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-full hover:bg-primary-hover transition-colors flex items-center gap-1 shrink-0 shadow-sm"
+              download={`${alt.replace(/\s+/g, '_')}.png`}
             >
-              SCARICA
+              <Download className="w-3 h-3" /> SCARICA
             </a>
           </div>
         </div>
@@ -77,7 +96,7 @@ export default function RuChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Benvenuta Vale :). Sono Rù, la tua assistente letteraria. \n\nSono qui per accompagnarti in un viaggio tra i libri, la cucina, la natura e ogni bellezza del mondo. \n\n✦ Puoi scrivermi o usare il **microfono** per parlarmi.\n\n✦ Posso anche **leggere le mie risposte** per te: basta cliccare sull\'icona dell\'altoparlante.\n\n✦ Se lo desideri, posso creare delle **immagini poetiche** per illustrare i nostri pensieri.\n\nCome posso rendere speciale la tua giornata oggi?'
+      content: "Ciao Vale, sono Rù, la tua assistente personale, felice di essere qui con te. Amo perdermi tra le pagine dei libri, ma adoro esplorare anche ogni piccola meraviglia della vita. Sono un'esperta di letteratura, ma se vuoi chiacchierare di altro o cambiare lingua, chiedi pure: sono qui per te.\n\n✦ Puoi scrivermi o usare il **microfono** per parlarmi.\n\n✦ Posso anche **leggere le mie risposte** per te: basta cliccare sull'icona dell'altoparlante.\n\n✦ Se lo desideri, posso creare delle **immagini poetiche** per illustrare i nostri pensieri.\n\nCome posso rendere speciale la tua giornata oggi?"
     }
   ]);
   const [input, setInput] = useState('');
@@ -169,6 +188,22 @@ export default function RuChat() {
     }
   };
 
+  const downloadChat = () => {
+    const chatContent = messages.map(m =>
+      `${m.role === 'user' ? 'Vale' : 'Rù'}: ${m.content.replace(/!\[.*?\]\(.*?\)/g, '[Immagine]')}`
+    ).join('\n\n---\n\n');
+
+    const blob = new Blob([chatContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Conversazione_con_Ru_${new Date().toLocaleDateString().replace(/\//g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const speak = (text: string) => {
     // Cancel any ongoing speech
     window.speechSynthesis.cancel();
@@ -181,15 +216,20 @@ export default function RuChat() {
 
     // Voice selection: Try to find a nice female Italian voice
     const voices = window.speechSynthesis.getVoices();
+    // Prioritize high-quality (premium/natural) voices if available in the browser
     const femaleVoice = voices.find(v =>
+      v.lang.startsWith('it') &&
+      (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('premium')) &&
+      (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('elsa') || v.name.toLowerCase().includes('alice'))
+    ) || voices.find(v =>
       v.lang.startsWith('it') &&
       (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('elsa') || v.name.toLowerCase().includes('alice'))
     ) || voices.find(v => v.lang.startsWith('it'));
 
     if (femaleVoice) utterance.voice = femaleVoice;
 
-    utterance.pitch = 1.1; // Slightly higher/rounder
-    utterance.rate = 1.15;  // Slightly faster as requested
+    utterance.pitch = 1.05; // Slightly less high to sound more natural/less squeaky
+    utterance.rate = 1.08;  // Slightly slower than before to reduce robot-like clipping, but still "brilliant"
 
     window.speechSynthesis.speak(utterance);
   };
@@ -224,9 +264,21 @@ export default function RuChat() {
                   <p className="text-[10px] text-white/70 uppercase font-bold tracking-tighter">TUA ASSISTENTE LETTERARIO</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={downloadChat}
+                  title="Scarica la conversazione"
+                  className="hover:bg-white/20 p-1.5 rounded-full transition-colors cursor-pointer"
+                >
+                  <FileText className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="hover:bg-white/20 p-1.5 rounded-full transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
