@@ -170,7 +170,7 @@ export default function RuChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Benvenuta Maria Teresa :). Sono Rù, la tua guida letteraria. Felice di essere qui con te in questo spazio creato apposta per te.\n\nAmo perdermi tra le pagine dei libri, ma adoro esplorare anche ogni piccola meraviglia della vita, dai gatti al profumo del mare. Sono qui per ascoltarti, consigliarti e rendere speciale la tua giornata.\n\n✦ Puoi scrivermi o usare il **microfono** per parlarmi.\n\n✦ Posso anche **leggere le mie risposte** per te: clicca sull'icona dell'altoparlante.\n\n✦ Chiedimi pure un **consulto di Tarocchi** o di creare un'**immagine poetica** per noi.\n\nCome posso accompagnarti oggi nella ricerca di bellezza?"
+      content: "Benvenuta Vale :). Sono Rù, la tua guida letteraria. Felice di essere qui con te in questo spazio creato apposta per te.\n\nAmo perdermi tra le pagine dei libri, ma adoro esplorare anche ogni piccola meraviglia della vita, dai gatti al profumo del mare. Sono qui per ascoltarti, consigliarti e rendere speciale la tua giornata.\n\n✦ Puoi scrivermi o usare il **microfono** per parlarmi.\n\n✦ Posso anche **leggere le mie risposte** per te: clicca sull'icona dell'altoparlante.\n\n✦ Chiedimi pure un **consulto di Tarocchi** o di creare un'**immagine poetica** per noi.\n\nCome posso accompagnarti oggi nella ricerca di bellezza?"
     }
   ]);
   const [input, setInput] = useState('');
@@ -218,7 +218,7 @@ export default function RuChat() {
   };
 
   const startTarotReading = () => {
-    const prompt = "Maria Teresa desidera un consulto di Tarocchi. Utilizza un approccio simbolico, archetipico e poetico. Estrai tre carte (Passato, Presente, Futuro), descrivile brevemente e offri una riflessione profonda che possa ispirarla oggi. Usa il tuo stile accogliente e colto.";
+    const prompt = "Vale desidera un consulto di Tarocchi. Utilizza un approccio simbolico, archetipico e poetico. Estrai tre carte (Passato, Presente, Futuro), descrivile brevemente e offri una riflessione profonda che possa ispirarla oggi. Usa il tuo stile accogliente e colto.";
     handleSend(undefined, prompt);
   };
 
@@ -267,7 +267,7 @@ export default function RuChat() {
 
   const downloadChat = () => {
     const chatContent = messages.map(m =>
-      `${m.role === 'user' ? 'Maria Teresa' : 'Rù'}: ${m.content.replace(/\[GENERA_IMMAGINE:.*?\]/g, '[Immagine]')}`
+      `${m.role === 'user' ? 'Vale' : 'Rù'}: ${m.content.replace(/\[GENERA_IMMAGINE:.*?\]/g, '[Immagine]')}`
     ).join('\n\n---\n\n');
 
     const blob = new Blob([chatContent], { type: 'text/plain' });
@@ -325,7 +325,7 @@ export default function RuChat() {
             initial={{ opacity: 0, y: 100, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            className="fixed bottom-24 left-4 right-4 md:left-auto md:right-6 md:w-[400px] h-[600px] bg-surface border border-surface-container-high rounded-3xl shadow-2xl flex flex-col overflow-hidden z-50 mx-auto"
+            className="fixed bottom-0 left-0 right-0 top-0 md:bottom-24 md:left-auto md:right-6 md:top-auto md:w-[400px] md:h-[600px] bg-surface border-0 md:border md:border-surface-container-high md:rounded-3xl shadow-2xl flex flex-col overflow-hidden z-50 mx-auto"
           >
             {/* Header */}
             <div className="p-5 bg-primary text-white flex justify-between items-center shadow-md">

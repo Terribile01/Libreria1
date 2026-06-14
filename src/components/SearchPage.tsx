@@ -147,28 +147,17 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
 
     setIsUploading(true);
     try {
-      let filePath = '';
-      let sourceType: 'internal' | 'external' = 'external';
-
-      if (manualFile) {
-        const uploadRes = await BookService.uploadLibraryFile(user.id, manualFile);
-        filePath = uploadRes.filePath;
-        sourceType = 'internal';
-      }
-
       // Add to catalog and library
       const book = await BookService.addBookToCatalog({
         title: manualTitle,
         author: manualAuthor,
         category: manualCategory as any,
         description: manualDescription || 'Caricamento manuale nel Santuario.',
-        coverUrl: 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300',
-        file_url: filePath // Passing file path to catalog as file_url
+        coverUrl: 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300'
       });
 
       await BookService.addReading(user.id, book.id, 'Da Leggere', '', {
-        source_type: sourceType,
-        file_path: filePath
+        source_type: 'external'
       });
 
       queryClient.invalidateQueries({ queryKey: ['readings'] });
@@ -496,15 +485,6 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Descrizione (Opzionale)</label>
                   <textarea rows={2} value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} className="w-full px-4 py-2.5 bg-white border rounded-xl text-sm" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest mb-1.5">Carica File (PDF/ePub)</label>
-                  <input
-                    type="file"
-                    accept=".pdf,.epub"
-                    onChange={(e) => setManualFile(e.target.files?.[0] || null)}
-                    className="w-full px-4 py-2.5 bg-white border rounded-xl text-[10px] file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-                  />
                 </div>
                 <button
                   type="submit"
