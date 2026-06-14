@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Send, X, Bot, User, Sparkles, Loader2, Mic, MicOff, Volume2, Download, ExternalLink, FileText, Smartphone, LayoutGrid } from 'lucide-react';
+import { MessageSquare, Send, X, Bot, User, Sparkles, Loader2, Mic, MicOff, Volume2, Square, Download, ExternalLink, FileText, Smartphone, LayoutGrid } from 'lucide-react';
 import { AIProvider } from '../utils/aiProvider';
 import { ApiKeyManager } from '../utils/apiKeys';
 
@@ -9,94 +9,8 @@ interface Message {
   content: string;
 }
 
-// Component to handle individual image generation via POST request
-const PollinationsImage = ({ prompt, alt }: { prompt: string; alt: string; key?: any }) => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const generateImage = async () => {
-      try {
-        const apiKey = ApiKeyManager.get('POLLINATIONS_API_KEY');
-        const response = await fetch('https://gen.pollinations.ai/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
-          },
-          body: JSON.stringify({
-            prompt: prompt,
-            model: 'flux',
-            width: 1024,
-            height: 1024,
-            seed: Math.floor(Math.random() * 1000000),
-            nologo: true
-          })
-        });
-
-        if (!response.ok) throw new Error('Errore generazione immagine');
-
-        const data = await response.json();
-        // Assuming Pollinations returns { data: [{ url: '...' }] } or similar OpenAI-compatible format
-        if (data.data && data.data[0] && data.data[0].url) {
-          setImageUrl(data.data[0].url);
-        } else {
-          // Fallback if structure is different
-          setImageUrl(`https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`);
-        }
-      } catch (err) {
-        console.error(err);
-        // Fallback to GET API if POST fails
-        setImageUrl(`https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    generateImage();
-  }, [prompt]);
-
-  if (isLoading) {
-    return (
-      <div className="my-3 aspect-square w-full rounded-2xl border border-surface-container-high bg-surface-container flex flex-col items-center justify-center gap-3 animate-pulse">
-        <Sparkles className="w-8 h-8 text-primary animate-bounce" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Sto dipingendo per te...</span>
-      </div>
-    );
-  }
-
-  if (!imageUrl) return null;
-
-  return (
-    <div className="my-3 rounded-2xl overflow-hidden border border-surface-container-high shadow-lg bg-white group">
-      <img
-        src={imageUrl}
-        alt={alt}
-        className="w-full h-auto object-cover hover:scale-105 transition-transform duration-700"
-      />
-      <div className="p-3 bg-surface-container-low flex justify-between items-center border-t border-surface-container-high">
-        <span className="text-[10px] text-on-surface-variant font-medium italic truncate mr-4">{alt}</span>
-        <a
-          href={imageUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-full hover:bg-primary-hover transition-colors flex items-center gap-1 shrink-0 shadow-sm"
-          download={`${alt.replace(/\s+/g, '_')}.png`}
-        >
-          <Download className="w-3 h-3" /> SCARICA
-        </a>
-      </div>
-    </div>
-  );
-};
-
-// Simple markdown-ish formatter for bold, images and links
+// Simple markdown-ish formatter for bold and links
 const FormattedMessage = ({ content, isUser }: { content: string; isUser: boolean }) => {
-  // Regex for new image tag: [GENERA_IMMAGINE: description]
-  const imageGenRegex = /\[GENERA_IMMAGINE:\s*(.*?)\]/g;
-  // Regex for old markdown images: ![desc](url)
-  const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
   // Regex for URLs
   const urlRegex = /(https?:\/\/[^\s)]+)/g;
 
@@ -133,34 +47,9 @@ const FormattedMessage = ({ content, isUser }: { content: string; isUser: boolea
     ));
   };
 
-  // Process sections of the message
-  const parts = content.split(/(\[GENERA_IMMAGINE:.*?\]|!\[.*?\]\(.*?\))/g);
-
   return (
     <div className="space-y-1">
-      {parts.map((part, i) => {
-        const genMatch = part.match(/\[GENERA_IMMAGINE:\s*(.*?)\]/);
-        if (genMatch) {
-          return <PollinationsImage key={i} prompt={genMatch[1]} alt="Immagine poetica di Rù" />;
-        }
-
-        const imgMatch = part.match(/!\[(.*?)\]\((.*?)\)/);
-        if (imgMatch) {
-          const [_, alt, url] = imgMatch;
-          return (
-            <div key={i} className="my-3 rounded-2xl overflow-hidden border border-surface-container-high shadow-lg bg-white">
-              <img src={url} alt={alt} className="w-full h-auto" />
-              <div className="p-3 bg-surface-container-low flex justify-between items-center border-t border-surface-container-high text-[10px]">
-                <span className="italic text-on-surface-variant">{alt}</span>
-                <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary font-bold">LINK</a>
-              </div>
-            </div>
-          );
-        }
-
-        // It's regular text
-        return <div key={i}>{renderText(part)}</div>;
-      })}
+      {renderText(content)}
     </div>
   );
 };
@@ -170,12 +59,13 @@ export default function RuChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Benvenuta Vale :). Sono Rù, la tua guida letteraria. Felice di essere qui con te in questo spazio creato apposta per te.\n\nAmo perdermi tra le pagine dei libri, ma adoro esplorare anche ogni piccola meraviglia della vita, dai gatti al profumo del mare. Sono qui per ascoltarti, consigliarti e rendere speciale la tua giornata.\n\n✦ Puoi scrivermi o usare il **microfono** per parlarmi.\n\n✦ Posso anche **leggere le mie risposte** per te: clicca sull'icona dell'altoparlante.\n\n✦ Chiedimi pure un **consulto di Tarocchi** o di creare un'**immagine poetica** per noi.\n\nCome posso accompagnarti oggi nella ricerca di bellezza?"
+      content: "Benvenuta Vale :). Sono Rù, la tua guida letteraria.\n\nFelice di essere qui con te in questo spazio creato apposta per te.\n\nAmo perdermi tra le pagine dei libri, ma adoro esplorare anche ogni piccola meraviglia della vita, dai gatti al profumo del mare. Sono qui per ascoltarti, consigliarti e rendere speciale la tua giornata.\n\n**I miei strumenti per te**\n\n✦ Puoi scrivermi o usare il **microfono** sempre visibile per parlarmi.\n\n✦ Posso anche **leggere le mie risposte** per te: clicca sull'icona dell'altoparlante sotto ogni messaggio.\n\n✦ Chiedimi pure un **consulto di Tarocchi** se desideri una riflessione simbolica.\n\nCome posso accompagnarti oggi nella ricerca di bellezza?"
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -265,30 +155,35 @@ export default function RuChat() {
     }
   };
 
-  const downloadChat = () => {
-    const chatContent = messages.map(m =>
-      `${m.role === 'user' ? 'Vale' : 'Rù'}: ${m.content.replace(/\[GENERA_IMMAGINE:.*?\]/g, '[Immagine]')}`
-    ).join('\n\n---\n\n');
-
-    const blob = new Blob([chatContent], { type: 'text/plain' });
+  const downloadMessage = (text: string) => {
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Conversazione_con_Ru_${new Date().toLocaleDateString().replace(/\//g, '-')}.txt`;
+    a.download = `Messaggio_di_Ru_${new Date().toLocaleDateString().replace(/\//g, '-')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
   const speak = (text: string) => {
     window.speechSynthesis.cancel();
 
     // Clean text
-    const cleanText = text.replace(/\[GENERA_IMMAGINE:.*?\]/g, '').replace(/!\[.*?\]\(.*?\)/g, '').replace(/\*\*/g, '');
+    const cleanText = text.replace(/\*\*/g, '');
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'it-IT';
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
 
     const voices = window.speechSynthesis.getVoices();
     const femaleVoice = voices.find(v =>
@@ -335,17 +230,10 @@ export default function RuChat() {
                 </div>
                 <div>
                   <h3 className="font-serif font-bold text-lg leading-tight">Rù</h3>
-                  <p className="text-[10px] text-white/80 uppercase font-bold tracking-widest">TUA ASSISTENTE LETTERARIO</p>
+                  <p className="text-[10px] text-white/80 uppercase font-bold tracking-widest">IL TUO COPILOTA</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={downloadChat}
-                  title="Scarica la conversazione"
-                  className="hover:bg-white/20 p-2 rounded-full transition-colors cursor-pointer"
-                >
-                  <FileText className="w-4 h-4" />
-                </button>
                 <button
                   onClick={() => setIsOpen(false)}
                   className="hover:bg-white/20 p-2 rounded-full transition-colors cursor-pointer"
@@ -388,14 +276,36 @@ export default function RuChat() {
                     <FormattedMessage content={m.content} isUser={m.role === 'user'} />
 
                     {m.role === 'assistant' && (
-                      <div className="flex justify-end mt-3 pt-2 border-t border-surface-container-high/50">
+                      <div className="flex justify-between items-center mt-3 pt-2 border-t border-surface-container-high/50">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => speak(m.content)}
+                            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary-hover transition-colors cursor-pointer"
+                            title="Ascolta la risposta"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                            Ascolta
+                          </button>
+
+                          {isSpeaking && (
+                            <button
+                              onClick={stopSpeaking}
+                              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+                              title="Ferma lettura"
+                            >
+                              <Square className="w-3 h-3 fill-current" />
+                              Stop
+                            </button>
+                          )}
+                        </div>
+
                         <button
-                          onClick={() => speak(m.content)}
-                          className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary hover:text-primary-hover transition-colors cursor-pointer"
-                          title="Ascolta la risposta"
+                          onClick={() => downloadMessage(m.content)}
+                          className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-secondary hover:text-secondary-hover transition-colors cursor-pointer"
+                          title="Scarica questo messaggio"
                         >
-                          <Volume2 className="w-3.5 h-3.5" />
-                          Ascolta
+                          <Download className="w-3.5 h-3.5" />
+                          Scarica
                         </button>
                       </div>
                     )}
