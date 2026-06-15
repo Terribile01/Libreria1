@@ -3,23 +3,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Lock, Shield, Key, Eye, EyeOff,
   CheckCircle2, AlertCircle, LogOut, Sparkles, Check,
-  Bookmark, Database, Copy
+  Bookmark, Database, Copy, Heart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ApiKeyManager, ApiKeyStructure } from '../utils/apiKeys';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { BookService, DiaryService } from '../utils/database';
 
 interface PersonalPageProps {
   onNavigateToHome: () => void;
-  booksCount: {
-    total: number;
-    favorites: number;
-    completed: number;
-    toRead: number;
-  };
-  notesCount: number;
 }
 
-export default function PersonalPage({ onNavigateToHome, booksCount, notesCount }: PersonalPageProps) {
+export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
   const { 
     user: currentUser,
     profile,
@@ -29,6 +24,8 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
     logout, 
     updateProfile,
   } = useAuth();
+
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'api' | 'database'>('dashboard');
 
@@ -42,8 +39,36 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
   const [authIsLoading, setAuthIsLoading] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
-  const [editUsername, setEditUsername] = useState(profile?.username || '');
+  const [editUsername, setEditUsername] = useState('');
   const [profileMessage, setProfileMessage] = useState({ text: '', type: 'success' });
+
+  // Sincronizza editUsername quando il profilo viene caricato
+  React.useEffect(() => {
+    if (profile?.username) {
+      setEditUsername(profile.username);
+    }
+  }, [profile]);
+
+  // Fetch Stats dynamically
+  const { data: readings = [] } = useQuery({
+    queryKey: ['readings', currentUser?.id],
+    queryFn: () => BookService.getUserReadings(currentUser!.id),
+    enabled: !!currentUser,
+  });
+
+  const { data: notes = [] } = useQuery({
+    queryKey: ['notes', currentUser?.id],
+    queryFn: () => DiaryService.getUserNotes(currentUser!.id),
+    enabled: !!currentUser,
+  });
+
+  const stats = {
+    total: readings.length,
+    favorites: readings.filter(r => r.status === 'Preferiti').length,
+    completed: readings.filter(r => r.status === 'Letti').length,
+    toRead: readings.filter(r => r.status === 'Da Leggere').length,
+    notes: notes.length
+  };
 
   const [apiKeys, setApiKeys] = useState<ApiKeyStructure[]>(ApiKeyManager.listKeys());
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -111,6 +136,8 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
     const res = await updateProfile(editUsername);
     if (res.success) {
       setProfileMessage({ text: 'Profilo salvato correttamente!', type: 'success' });
+      // Invalida le query per rinfrescare i dati ovunque
+      queryClient.invalidateQueries({ queryKey: ['profile', currentUser?.id] });
     } else {
       setProfileMessage({ text: res.error || 'Errore salvataggio.', type: 'error' });
     }
@@ -216,9 +243,32 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 <h2 className="font-serif text-2xl font-semibold">Profilo Lettore Cloud</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center"><Bookmark className="w-5 h-5 text-primary mx-auto mb-1.5"/><strong className="text-xl block">{booksCount.total}</strong> Libri</div>
-                  {/* ... stats ... */}
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
+                    <Bookmark className="w-5 h-5 text-primary mx-auto mb-1.5"/>
+                    <strong className="text-xl block">{stats.total}</strong>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Libri</span>
+                  </div>
+                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
+                    <Heart className="w-5 h-5 text-rose-500 mx-auto mb-1.5"/>
+                    <strong className="text-xl block">{stats.favorites}</strong>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Preferiti</span>
+                  </div>
+                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 mx-auto mb-1.5"/>
+                    <strong className="text-xl block">{stats.completed}</strong>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Letti</span>
+                  </div>
+                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
+                    <Sparkles className="w-5 h-5 text-amber-500 mx-auto mb-1.5"/>
+                    <strong className="text-xl block">{stats.toRead}</strong>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Da Leggere</span>
+                  </div>
+                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
+                    <Database className="w-5 h-5 text-blue-500 mx-auto mb-1.5"/>
+                    <strong className="text-xl block">{stats.notes}</strong>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Appunti</span>
+                  </div>
                 </div>
                 <form onSubmit={handleUpdateProfile} className="bg-surface p-5 border rounded-xl space-y-4">
                   <h3 className="font-serif text-lg font-semibold border-b pb-2">Modifica Profilo</h3>
