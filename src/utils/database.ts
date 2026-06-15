@@ -62,7 +62,7 @@ export const BookService = {
     return (data || []).map(mapDbToBook);
   },
 
-  // Integrazione Groq per estrarre testo pulito da PDF
+ // Integrazione Groq per estrarre testo pulito da PDF
   extractTextWithGroq: async (rawText: string): Promise<string> => {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -74,16 +74,18 @@ export const BookService = {
         model: "llama3-8b-8192",
         messages: [{
           role: "system",
-          content: "Sei un assistente editoriale esperto. Converti il testo fornito (estratto da PDF) in una trascrizione narrativa fluida, corretta e pronta per la sintesi vocale. Rimuovi intestazioni, numeri di pagina e refusi di formattazione. Restituisci solo il testo pulito."
+          content: "Sei un assistente editoriale esperto. Converti il testo fornito in una trascrizione narrativa fluida e corretta. Rimuovi intestazioni, numeri di pagina e refusi di formattazione. Restituisci solo il testo pulito."
         }, {
           role: "user",
           content: rawText
         }]
       })
-    })
-    
-    if (!response.ok) throw new Error('Errore nella comunicazione con il cervello AI di Groq');
-    
+    });
+
+    if (!response.ok) {
+      throw new Error('Errore nella comunicazione con il cervello AI di Groq');
+    }
+
     const data = await response.json();
     return data.choices[0].message.content;
   },
