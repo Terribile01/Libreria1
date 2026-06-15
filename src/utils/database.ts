@@ -188,16 +188,26 @@ export interface DiaryNote {
 export const DiaryService = {
   // Get all user notes from the 'notes' table
   getUserNotes: async (userId: string) => {
+    // We specify the join explicitly and use maybeSingle for safety if needed,
+    // though here we want multiple notes.
     const { data, error } = await supabase
       .from('notes')
       .select(`
-        *,
-        book:books(*)
+        id,
+        user_id,
+        book_id,
+        title,
+        content,
+        created_at,
+        book:books(id, title, author, cover_url, category, description, file_url, external_url)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Errore nel recupero note (DiaryService):", error);
+      throw error;
+    }
 
     return (data || []).map((n: any) => ({
       ...n,
@@ -207,31 +217,46 @@ export const DiaryService = {
 
   // Create new note in 'notes' table
   addNote: async (note: Omit<DiaryNote, 'id' | 'created_at'>) => {
+    // Sanitize book_id: ensure it's null if empty string or undefined
+    const bookId = (note.book_id && note.book_id.trim() !== '') ? note.book_id : null;
+
     const { data, error } = await supabase
       .from('notes')
       .insert([{
         user_id: note.user_id,
-        book_id: note.book_id,
+        book_id: bookId,
         title: note.title,
         content: note.content
       }])
       .select()
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Errore nell'aggiunta nota (DiaryService):", error);
+      throw error;
+    }
     return data;
   },
 
   // Update note
   updateNote: async (noteId: string, updates: Partial<Pick<DiaryNote, 'title' | 'content' | 'book_id'>>) => {
+    // Sanitize book_id if present in updates
+    const sanitizedUpdates = { ...updates };
+    if ('book_id' in updates) {
+      sanitizedUpdates.book_id = (updates.book_id && updates.book_id.trim() !== '') ? updates.book_id : null;
+    }
+
     const { data, error } = await supabase
       .from('notes')
-      .update(updates)
+      .update(sanitizedUpdates)
       .eq('id', noteId)
       .select()
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Errore nell'aggiornamento nota (DiaryService):", error);
+      throw error;
+    }
     return data;
   },
 
