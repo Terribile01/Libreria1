@@ -63,39 +63,8 @@ export const BookService = {
     return (data || []).map(mapDbToBook);
   },
 
-  // Integrazione Groq per estrarre testo pulito da PDF
-  extractTextWithGroq: async (rawText: string): Promise<string> => {
-    // Usiamo la chiave specifica per i PDF come richiesto
-    const apiKey = ApiKeyManager.get('GROQ_PDF_API_KEY');
-    if (!apiKey) throw new Error('Chiave API Groq PDF non configurata.');
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile", // Modello più recente ed efficiente
-        messages: [{
-          role: "system",
-          content: "Sei un assistente editoriale esperto. Converti il testo fornito (estratto da PDF) in una trascrizione narrativa fluida, corretta e pronta per la sintesi vocale. Rimuovi intestazioni, numeri di pagina e refusi di formattazione. Restituisci solo il testo pulito."
-        }, {
-          role: "user",
-          content: rawText
-        }]
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Errore Groq: ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-  },
-
+ // Integrazione Groq per estrarre testo pulito da PDF
+ 
   // Get user's readings (join with books)
   getUserReadings: async (userId: string) => {
     const { data, error } = await supabase
