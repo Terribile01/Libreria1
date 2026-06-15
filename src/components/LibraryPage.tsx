@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Bookmark, CheckCircle2, Trash2, X, BookOpen, Loader2, Sparkles, Book as BookIcon } from 'lucide-react';
+import { Heart, Bookmark, CheckCircle2, Trash2, X, BookOpen, Loader2, Sparkles, Book as BookIcon, Headphones } from 'lucide-react';
 import { Book } from '../types';
 import { BookService, Reading } from '../utils/database';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AIProvider } from '../utils/aiProvider';
 
-export default function LibraryPage() {
+interface LibraryPageProps {
+  onPlayTrack: (book: Book) => void;
+}
+
+export default function LibraryPage({ onPlayTrack }: LibraryPageProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Book['status']>('Preferiti');
@@ -142,16 +146,24 @@ export default function LibraryPage() {
                         <p className="font-sans text-xs text-on-surface-variant/80 italic">di {reading.book?.author}</p>
                       </div>
                     </div>
-                    <div className="flex md:flex-col items-center gap-2">
+                    <div className="flex md:flex-col items-center gap-4">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); if (reading.book) onPlayTrack(reading.book); }}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary rounded-xl font-sans font-bold text-[10px] uppercase hover:bg-primary hover:text-white transition-all cursor-pointer"
+                      >
+                        <Headphones className="w-3.5 h-3.5" />
+                        Ascolta
+                      </button>
+
                       <div className="flex gap-1">
                         {(['Preferiti', 'Da Leggere', 'Letti'] as const).map(s => (
-                           <button key={s} onClick={(e) => { e.stopPropagation(); updateStatusMutation.mutate({ readingId: reading.id, status: s }); }} className={`p-2 rounded-full cursor-pointer transition-colors ${reading.status === s ? 'text-primary bg-primary/5' : 'text-on-surface-variant/40 hover:text-primary'}`}>
+                           <button key={s} title={s} onClick={(e) => { e.stopPropagation(); updateStatusMutation.mutate({ readingId: reading.id, status: s }); }} className={`p-2 rounded-full cursor-pointer transition-colors ${reading.status === s ? 'text-primary bg-primary/5' : 'text-on-surface-variant/40 hover:text-primary'}`}>
                              {s === 'Preferiti' && <Heart className="w-4 h-4" />}
                              {s === 'Da Leggere' && <Bookmark className="w-4 h-4" />}
                              {s === 'Letti' && <CheckCircle2 className="w-4 h-4" />}
                            </button>
                         ))}
-                        <button onClick={(e) => { e.stopPropagation(); if (confirm('Rimuovere dall\'archivio?')) removeReadingMutation.mutate(reading.id); }} className="p-2 text-on-surface-variant/40 hover:text-rose-500 rounded-full cursor-pointer"><Trash2 className="w-4 h-4" /></button>
+                        <button title="Elimina" onClick={(e) => { e.stopPropagation(); if (confirm('Rimuovere dall\'archivio?')) removeReadingMutation.mutate(reading.id); }} className="p-2 text-on-surface-variant/40 hover:text-rose-500 rounded-full cursor-pointer"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
                   </motion.div>
@@ -194,13 +206,21 @@ export default function LibraryPage() {
                     {isGeneratingIntro ? <span className="text-xs opacity-50 animate-pulse">Rù sta consultando le stelle per te...</span> : poeticIntro || selectedBookDetail.book.description}
                   </div>
                 </div>
-                <div className="border-t pt-5 flex justify-between items-center">
-                   <button
-                     onClick={() => handleReadBook(selectedBookDetail)}
-                     className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center gap-2 shadow-md hover:bg-primary/90 transition-all"
-                   >
-                     <BookIcon className="w-4 h-4" /> Leggi Opera
-                   </button>
+                <div className="border-t pt-5 flex flex-wrap gap-3 justify-between items-center">
+                   <div className="flex gap-2">
+                     <button
+                       onClick={() => handleReadBook(selectedBookDetail)}
+                       className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center gap-2 shadow-md hover:bg-primary/90 transition-all"
+                     >
+                       <BookIcon className="w-4 h-4" /> Leggi
+                     </button>
+                     <button
+                       onClick={() => { if (selectedBookDetail.book) onPlayTrack(selectedBookDetail.book); }}
+                       className="px-6 py-2.5 border border-secondary text-secondary rounded-xl text-xs font-bold uppercase flex items-center gap-2 hover:bg-secondary/5 transition-all"
+                     >
+                       <Headphones className="w-4 h-4" /> Ascolta
+                     </button>
+                   </div>
                    <button onClick={() => { setSelectedBookDetail(null); setPoeticIntro(null); }} className="px-4 py-2 border rounded-xl text-xs font-bold uppercase">Esci</button>
                 </div>
               </div>

@@ -8,7 +8,7 @@ import { BookService } from '../utils/database';
 
 interface HomePageProps {
   books: Book[];
-  onPlayTrack: (bookTitle: string) => void;
+  onPlayTrack: (book: Book) => void;
   onNavigateToLibrary: () => void;
 }
 
@@ -185,7 +185,7 @@ export default function HomePage({ books, onPlayTrack, onNavigateToLibrary }: Ho
             <div className="pt-4 flex flex-wrap items-center gap-4">
               <button 
                 onClick={() => {
-                  onPlayTrack('Le Onde del Silenzio');
+                  onPlayTrack(heroBook);
                 }}
                 className="px-8 py-3.5 bg-primary text-white rounded-full font-sans font-semibold text-sm tracking-wider uppercase hover:opacity-90 shadow-md transform active:scale-98 transition-all cursor-pointer flex items-center gap-2"
               >

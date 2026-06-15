@@ -13,7 +13,7 @@ import { AIProvider } from '../utils/aiProvider';
 
 interface SearchPageProps {
   books: Book[];
-  onPlayTrack: (bookTitle: string) => void;
+  onPlayTrack: (book: Book) => void;
 }
 
 export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
