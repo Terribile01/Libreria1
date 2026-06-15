@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Sparkles, Mail, CheckCircle2, Bookmark, Heart, Headset, X } from 'lucide-react';
+import { BookOpen, Sparkles, Mail, CheckCircle2, Bookmark, Heart, Headset, X, ArrowRight, Loader2 } from 'lucide-react';
 import { Book } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { BookService } from '../utils/database';
 
 interface HomePageProps {
   books: Book[];
   onPlayTrack: (bookTitle: string) => void;
-  onUpdateBookStatus: (bookId: string, status: Book['status']) => void;
-  onAddBook: (book: Omit<Book, 'id'>) => void;
+  onNavigateToLibrary: () => void;
 }
 
-export default function HomePage({ books, onPlayTrack, onUpdateBookStatus, onAddBook }: HomePageProps) {
+export default function HomePage({ books, onPlayTrack, onNavigateToLibrary }: HomePageProps) {
+  const { user, profile } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
@@ -47,12 +51,39 @@ export default function HomePage({ books, onPlayTrack, onUpdateBookStatus, onAdd
     setSelectedBook(null);
   };
 
+  // Fetch user readings for "Bentornata" section
+  const { data: readings = [], isLoading: isLoadingReadings } = useQuery({
+    queryKey: ['readings', user?.id],
+    queryFn: () => BookService.getUserReadings(user!.id),
+    enabled: !!user,
+  });
+
+  // Mutation for quick status updates from modal
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ bookId, status }: { bookId: string, status: Book['status'] }) => {
+      // Find if already in readings
+      const existing = readings.find(r => r.book_id === bookId);
+      if (existing) {
+        return BookService.updateReading(existing.id, { status });
+      } else {
+        return BookService.addReading(user!.id, bookId, status);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['readings'] });
+    },
+  });
+
   const handleAction = (status: Book['status']) => {
-    if (selectedBook) {
-      onUpdateBookStatus(selectedBook.id, status);
+    if (selectedBook && user) {
+      updateStatusMutation.mutate({ bookId: selectedBook.id, status });
       setSelectedBook(prev => prev ? { ...prev, status } : null);
+    } else if (!user) {
+      alert("Accedi per salvare i libri nella tua libreria.");
     }
   };
+
+  const currentReadings = readings.filter(r => r.status === 'Da Leggere').slice(0, 3);
 
   return (
     <motion.div 
@@ -62,6 +93,52 @@ export default function HomePage({ books, onPlayTrack, onUpdateBookStatus, onAdd
       transition={{ duration: 0.6, ease: 'easeOut' }}
       className="space-y-16 px-4 md:px-16"
     >
+      {/* Bentornata Section (Only for Auth Users) */}
+      {user && (
+        <section className="max-w-7xl mx-auto pt-8">
+          <div className="bg-primary/5 rounded-3xl p-6 md:p-10 border border-primary/10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="space-y-2 text-center md:text-left">
+              <h2 className="font-serif text-3xl text-on-surface">Bentornata, <span className="text-primary font-semibold">{profile?.username || 'Vale'}</span></h2>
+              <p className="font-sans text-sm text-on-surface-variant/70 italic">Cosa sussurra la tua anima oggi tra queste pagine?</p>
+            </div>
+
+            <div className="flex-1 flex gap-4 overflow-x-auto pb-2 justify-center md:justify-end w-full">
+              {isLoadingReadings ? (
+                <div className="flex items-center gap-2 text-primary/50 py-4">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-xs font-bold uppercase tracking-widest">Caricamento...</span>
+                </div>
+              ) : currentReadings.length > 0 ? (
+                currentReadings.map(r => (
+                  <motion.div
+                    key={r.id}
+                    whileHover={{ y: -5 }}
+                    className="flex-shrink-0 w-24 cursor-pointer"
+                    onClick={() => r.book && openBookDetails(r.book)}
+                  >
+                    <img src={r.book?.coverUrl} className="w-full aspect-[2/3] object-cover rounded-lg shadow-sm mb-2" />
+                    <p className="text-[10px] font-bold text-center truncate px-1 uppercase tracking-tighter text-on-surface-variant">{r.book?.title}</p>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-xs text-on-surface-variant/40 italic flex items-center gap-2 border border-dashed border-primary/20 px-6 py-4 rounded-2xl">
+                   Inizia la tua prossima avventura nella sezione ricerca.
+                </div>
+              )}
+              {readings.length > 0 && (
+                <button
+                  onClick={onNavigateToLibrary}
+                  className="flex-shrink-0 w-24 aspect-[2/3] bg-white rounded-lg border border-primary/20 flex flex-col items-center justify-center gap-2 text-primary hover:bg-primary hover:text-white transition-all cursor-pointer group"
+                >
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest">Libreria</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Hero: Libro del Giorno */}
       <section className="py-8 md:py-16 max-w-7xl mx-auto overflow-hidden">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">

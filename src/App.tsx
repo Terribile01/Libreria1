@@ -31,40 +31,6 @@ export default function App() {
     setCurrentPage('listen');
   };
 
-  // Add Book (Still used for Home recommendations for now, but will eventually be Supabase-only)
-  const handleAddBook = (newBook: Omit<Book, 'id'>) => {
-    const id = `custom-${Date.now()}`;
-    const bookWithId: Book = { ...newBook, id };
-    setBooks(prev => [bookWithId, ...prev]);
-  };
-
-  // Update Book status
-  const handleUpdateBookStatus = (bookId: string, status: Book['status']) => {
-    setBooks(prev => {
-      const exists = prev.some(b => b.id === bookId);
-      if (!exists) {
-        const fallbackCover = "https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300";
-        const newBook: Book = {
-          id: `rec-${Date.now()}`,
-          title: bookId,
-          author: "Curatore del Santuario",
-          coverUrl: fallbackCover,
-          category: 'Romanzi',
-          description: "Opera consigliata per armonia di spirito.",
-          status: status
-        };
-        return [newBook, ...prev];
-      }
-
-      return prev.map(book => {
-        if (book.id === bookId) {
-          return { ...book, status };
-        }
-        return book;
-      });
-    });
-  };
-
   const renderActivePage = () => {
     switch (currentPage) {
       case 'home':
@@ -72,8 +38,7 @@ export default function App() {
           <HomePage 
             books={books}
             onPlayTrack={handlePlayTrackByTitle}
-            onUpdateBookStatus={handleUpdateBookStatus}
-            onAddBook={handleAddBook}
+            onNavigateToLibrary={() => setCurrentPage('library')}
           />
         );
       case 'search':
@@ -103,17 +68,10 @@ export default function App() {
         return (
           <PersonalPage 
             onNavigateToHome={() => setCurrentPage('home')}
-            booksCount={{
-              total: books.length,
-              favorites: books.filter(b => b.status === 'Preferiti').length,
-              completed: books.filter(b => b.status === 'Letti').length,
-              toRead: books.filter(b => b.status === 'Da Leggere').length,
-            }}
-            notesCount={0}
           />
         );
       default:
-        return <HomePage books={books} onPlayTrack={handlePlayTrackByTitle} onUpdateBookStatus={handleUpdateBookStatus} onAddBook={handleAddBook} />;
+        return <HomePage books={books} onPlayTrack={handlePlayTrackByTitle} onNavigateToLibrary={() => setCurrentPage('library')} />;
     }
   };
 
