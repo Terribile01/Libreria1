@@ -81,49 +81,49 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
     setIsPlaying(true);
   };
 
+  const handlePause = () => { window.speechSynthesis.pause(); setIsPlaying(false); setIsPaused(true); };
   const handleStop = () => { window.speechSynthesis.cancel(); setIsPlaying(false); setIsPaused(false); setCurrentTime(0); };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto px-4 md:px-16 space-y-16">
-      <div className="text-center md:text-left">
-        <h1 className="font-serif text-3xl font-semibold flex items-center justify-center md:justify-start gap-2">
-          <Headphones className="w-8 h-8 text-primary" /> Aura di Ascolto
-        </h1>
-      </div>
+      <h1 className="font-serif text-3xl font-semibold flex items-center gap-2"><Headphones className="w-8 h-8 text-primary" /> Aura di Ascolto</h1>
+      
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-7 bg-white rounded-3xl p-6 md:p-10 border shadow-sm">
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 md:p-10 border shadow-sm space-y-8">
           <div className="flex flex-col sm:flex-row gap-6 items-center">
-            <div className="w-32 h-32 rounded-2xl bg-surface-container overflow-hidden relative">
-              <img src={activeTrack.coverUrl} className="w-full h-full object-cover" />
-            </div>
+            <div className="w-32 h-32 rounded-2xl bg-surface-container overflow-hidden"><img src={activeTrack.coverUrl} className="w-full h-full object-cover" /></div>
             <div className="text-center sm:text-left space-y-2">
               <h3 className="font-serif text-2xl">{activeTrack.title}</h3>
               <p className="italic text-sm text-on-surface-variant/70">di {activeTrack.author}</p>
-              <div className="flex gap-3 pt-1">
-                <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} className="bg-transparent text-[9px] font-bold uppercase tracking-widest">
-                  {voices.filter(v => v.lang.startsWith('it')).map(v => <option key={v.name} value={v.name}>{v.name}</option>)}
-                </select>
-              </div>
             </div>
           </div>
-          <div className="mt-8 pt-6 border-t">
-            <p className="font-serif italic text-sm">{activeTrack.transcript[activeTranscriptIndex]?.text || "In attesa..."}</p>
+
+          {/* CONTROLLI PLAYER RIPRISTINATI */}
+          <div className="flex items-center justify-between pt-4 border-t border-surface-container/40">
+            <div className="flex items-center gap-6">
+              <button onClick={handleStop} className="p-2.5 text-on-surface-variant/40 hover:text-rose-500 transition-all"><Square className="w-6 h-6 fill-current" /></button>
+              <button onClick={isPlaying ? handlePause : handlePlay} className="p-4 bg-primary text-white rounded-full shadow-md">
+                {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-1" />}
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setIsMuted(!isMuted)}>{isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button>
+              <input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={(e) => { setVolume(parseFloat(e.target.value)); setIsMuted(false); }} className="w-20 h-1 bg-surface-container rounded-lg appearance-none cursor-pointer accent-secondary" />
+            </div>
           </div>
         </div>
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="bg-white rounded-2xl p-6 border shadow-sm">
-            <h4 className="font-serif text-base pb-4 border-b">Trascrizione Sintonica</h4>
-            <div className="space-y-4 max-h-60 overflow-y-auto">
-              {activeTrack.transcript.map((line, idx) => (
-                <div key={idx} className={`p-2.5 rounded-lg text-xs ${idx === activeTranscriptIndex ? 'bg-secondary/5 font-serif italic' : ''}`}>
-                  <p>{line.text}</p>
-                </div>
-              ))}
-            </div>
+
+        <div className="lg:col-span-5 bg-white rounded-2xl p-6 border shadow-sm">
+          <h4 className="font-serif text-base pb-4 border-b">Trascrizione Sintonica</h4>
+          <div className="space-y-4 max-h-60 overflow-y-auto">
+            {activeTrack.transcript.map((line, idx) => (
+              <div key={idx} className={`p-2.5 rounded-lg text-xs ${idx === activeTranscriptIndex ? 'bg-secondary/5 font-serif italic' : ''}`}>
+                <p>{line.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </motion.div>
   );
 }
-
