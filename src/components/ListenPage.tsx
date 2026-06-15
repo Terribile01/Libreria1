@@ -4,7 +4,8 @@ import { Play, Pause, Square, Volume2, VolumeX, ListMusic, Headphones, Settings,
 import { AudioTrack } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { BookService } from '../utils/database';
+import { BookService, Reading } from '../utils/database';
+import { PdfService } from '../utils/pdfService';
 
 interface ListenPageProps {
   tracks: AudioTrack[];
@@ -35,13 +36,13 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
     const reading = readings.find(r => r.book_id === activeTrackId || r.id === activeTrackId);
     if (reading && reading.book) {
       return {
-        id: reading.book.id,
-        title: reading.book.title,
-        author: reading.book.author,
-        coverUrl: reading.book.coverUrl,
-        chapter: 'Sintonizzazione Integrale',
+        id: activeReading.book.id,
+        title: activeReading.book.title,
+        author: activeReading.book.author,
+        coverUrl: activeReading.book.coverUrl,
+        chapter: activeReading.source_type === 'internal' ? 'Lettura PDF Intelligente' : 'Sintonizzazione Integrale',
         durationSeconds: 1800,
-        transcript: [{ time: 0, text: reading.book.description }]
+        transcript: [{ time: 0, text: extractedText || activeReading.book.description }]
       } as AudioTrack;
     }
     return tracks[0] || { id: '', title: '', author: '', coverUrl: '', durationSeconds: 0, transcript: [] };

@@ -113,10 +113,16 @@ export const ApiKeyManager = {
         'Consente di tradurre qualsiasi testo o parola difficile in oltre 30 lingue.'
       ),
       ApiKeyManager.getDetails(
-        'Groq AI Key',
+        'Groq Chat Key',
         'GROQ_API_KEY',
-        'Motore di inferenza ultra-veloce per la chat Rù.',
-        'Necessario per utilizzare i modelli Llama-3 tramite Groq Cloud.'
+        'Motore di inferenza per la chat Rù.',
+        'Chiave dedicata alle conversazioni con l\'assistente.'
+      ),
+      ApiKeyManager.getDetails(
+        'Groq PDF Reader Key',
+        'GROQ_PDF_API_KEY',
+        'Pulizia e conversione narrativa dei PDF.',
+        'Chiave specifica per trasformare i PDF caricati in testi pronti per l\'ascolto.'
       ),
       ApiKeyManager.getDetails(
         'Google Books API Key',

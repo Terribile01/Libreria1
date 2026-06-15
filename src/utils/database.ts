@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { Book } from '../types';
+import { ApiKeyManager } from './apiKeys';
 
 export interface DatabaseBook {
   id: string;
