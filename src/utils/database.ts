@@ -80,7 +80,7 @@ export const BookService = {
           content: rawText
         }]
       })
-    }),
+    })
     
     if (!response.ok) throw new Error('Errore nella comunicazione con il cervello AI di Groq');
     
