@@ -59,7 +59,6 @@ export default function App() {
       case 'listen':
         return (
           <ListenPage 
-            tracks={INITIAL_AUDIO_TRACKS}
             activeTrackId={activeTrackId}
             setActiveTrackId={setActiveTrackId}
           />
