@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, ListMusic, Headphones, Square, Settings, Loader2 } from 'lucide-react';
+import { Play, Pause, Square, Volume2, VolumeX, ListMusic, Headphones, Settings } from 'lucide-react';
 import { AudioTrack } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -14,12 +14,17 @@ interface ListenPageProps {
 
 export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: ListenPageProps) {
   const { user } = useAuth();
+  // --- STATO DEL PLAYER ---
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const [rate, setRate] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  
+  // --- STATO WEB SPEECH API ---
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
 
   // Web Speech API state
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -135,6 +140,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
     return `${min}:${sec < 10 ? '0' : ''}${sec}`;
   };
 
+  // Logica originale di evidenziazione della transcript basata su currentTime
   const activeTranscriptIndex = [...activeTrack.transcript]
     .reverse()
     .find((item) => currentTime >= item.time)
@@ -145,25 +151,19 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="max-w-7xl mx-auto px-4 md:px-16 space-y-16"
     >
       <div className="space-y-2 text-center md:text-left">
         <h1 className="font-serif text-3xl md:text-4xl text-on-surface font-semibold flex items-center justify-center md:justify-start gap-2">
-          <Headphones className="w-8 h-8 text-primary" />
-          Aura di Ascolto
+          <Headphones className="w-8 h-8 text-primary" /> Aura di Ascolto
         </h1>
-        <p className="font-sans text-sm text-on-surface-variant/70">
-          Player sintonico nativo: leggero, gratuito e integrato.
-        </p>
+        <p className="font-sans text-sm text-on-surface-variant/70">Player sintonico nativo: leggero, gratuito e integrato.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
         
-        {/* Core Player Area */}
+        {/* PLAYER PRINCIPALE */}
         <div className="lg:col-span-7 flex flex-col justify-between bg-white rounded-3xl p-6 md:p-10 border border-surface-container-high/45 shadow-sm player-shadow relative overflow-hidden">
           <div className="absolute -top-32 -right-32 w-80 h-80 bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
 
@@ -186,7 +186,8 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
                   <h3 className="font-serif text-2xl text-on-surface font-semibold">{activeTrack.title}</h3>
                   <p className="font-sans text-sm text-on-surface-variant/70 italic">di {activeTrack.author}</p>
                 </div>
-
+                
+                {/* SELECTORS: VOCE E VELOCITÀ */}
                 <div className="flex flex-wrap justify-center sm:justify-start gap-3 pt-1">
                   <div className="flex items-center gap-1 text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
                     <Settings className="w-3 h-3" />
@@ -204,14 +205,12 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
               </div>
             </div>
 
-            {/* Seek bar */}
+            {/* SEEK BAR (Visuale) */}
             <div className="space-y-2">
               <div className="w-full h-[5px] bg-surface-container-high rounded-lg relative overflow-hidden">
-                <motion.div
-                  className="absolute top-0 left-0 h-full bg-primary"
-                  initial={{ width: 0 }}
+                <motion.div 
+                  className="absolute top-0 left-0 h-full bg-primary" 
                   animate={{ width: `${(currentTime / activeTrack.durationSeconds) * 100}%` }}
-                  transition={{ duration: 0.5 }}
                 />
               </div>
               <div className="flex justify-between font-sans text-xs text-on-surface-variant/60 font-semibold px-0.5">
@@ -220,7 +219,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
               </div>
             </div>
 
-            {/* Controls */}
+            {/* CONTROLLI PLAYER */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-4 border-t border-surface-container/40">
               <div className="flex items-center gap-6">
                 <button onClick={handleStop} className="p-2.5 text-on-surface-variant/40 hover:text-rose-500 transition-all cursor-pointer">
@@ -230,19 +229,20 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
                   onClick={isPlaying ? handlePause : handlePlay}
                   className="p-4 bg-primary text-white rounded-full shadow-md flex items-center justify-center transform active:scale-95 transition-all cursor-pointer"
                 >
-                  {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-[1.5px]" />}
+                  {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-1" />}
                 </button>
               </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto max-w-[160px]">
-                <button onClick={() => setIsMuted(!isMuted)} className="text-on-surface-variant hover:text-primary cursor-pointer">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setIsMuted(!isMuted)} className="text-on-surface-variant hover:text-primary">
                   {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
-                <input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={(e) => { setVolume(parseFloat(e.target.value)); setIsMuted(false); }} className="w-full h-1 bg-surface-container rounded-lg appearance-none cursor-pointer accent-secondary" />
+                <input type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume} onChange={(e) => { setVolume(parseFloat(e.target.value)); setIsMuted(false); }} className="w-20 h-1 bg-surface-container rounded-lg appearance-none cursor-pointer accent-secondary" />
               </div>
             </div>
           </div>
 
+          {/* RIFLESSIONE CORRENTE (Sincronizzata) */}
           <div className="mt-8 pt-6 border-t border-surface-container/50 bg-[#fbf9f6]/40 p-4 rounded-xl border border-surface-container/30">
             <span className="text-[10px] uppercase font-sans font-bold tracking-widest text-secondary block pb-2">Riflessione Corrente</span>
             <p className="font-serif italic text-sm text-on-surface leading-relaxed min-h-[40px]">
@@ -251,7 +251,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
           </div>
         </div>
 
-        {/* Transcript & Queue */}
+        {/* TRASCRIZIONE E CODA (Compatibilità Totale) */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           <div className="bg-white rounded-2xl p-6 border border-surface-container-high/45 shadow-sm flex-1 flex flex-col">
             <h4 className="font-serif text-base text-on-surface font-semibold pb-4 border-b border-surface-container/50">Trascrizione Sintonica</h4>
@@ -259,10 +259,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
               {activeTrack.transcript.map((line, idx) => {
                 const isActive = idx === activeTranscriptIndex;
                 return (
-                  <div
-                    key={idx}
-                    className={`p-2.5 rounded-lg text-xs leading-relaxed transition-all duration-300 ${isActive ? 'bg-secondary/5 font-serif text-secondary italic border-l-4 border-secondary pl-3' : 'font-sans text-on-surface-variant/75'}`}
-                  >
+                  <div key={idx} className={`p-2.5 rounded-lg text-xs leading-relaxed transition-all duration-300 ${isActive ? 'bg-secondary/5 font-serif text-secondary italic border-l-4 border-secondary pl-3' : 'font-sans text-on-surface-variant/75'}`}>
                     <p>{line.text}</p>
                   </div>
                 );
@@ -274,19 +271,19 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
             <h4 className="font-serif text-base text-on-surface font-semibold pb-4 border-b border-surface-container/50 flex items-center gap-2">
               <ListMusic className="w-4 h-4 text-on-surface-variant" /> Coda di Ascolto
             </h4>
-            <div className="space-y-6 pt-3 overflow-y-auto max-h-[400px] pr-1">
-              {/* Static Archive */}
-              <div className="space-y-2">
-                <span className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-widest block px-2">Archivio Storico</span>
-                {tracks.map((track) => (
+            <div className="space-y-3 pt-3">
+              {tracks.map((track) => {
+                const isSelected = track.id === activeTrackId;
+                return (
                   <div
                     key={track.id}
-                    onClick={() => { handleStop(); setActiveTrackId(track.id); }}
-                    className={`flex items-center gap-3 p-2 rounded-xl border cursor-pointer transition-all ${track.id === activeTrackId ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-surface-container'}`}
+                    onClick={() => setActiveTrackId(track.id)}
+                    className={`flex items-center gap-3.5 p-2 rounded-xl border cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-surface-container'}`}
                   >
-                    <img src={track.coverUrl} className="w-10 h-10 rounded object-cover shadow-sm flex-shrink-0" />
+                    <img src={track.coverUrl} className="w-12 h-12 rounded object-cover shadow-sm flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <h5 className="font-sans font-semibold text-[11px] truncate">{track.title}</h5>
+                      <h5 className="font-sans font-semibold text-xs truncate">{track.title}</h5>
+                      <p className="font-sans text-[10px] text-on-surface-variant/70 truncate italic">{track.author}</p>
                     </div>
                   </div>
                 ))}
