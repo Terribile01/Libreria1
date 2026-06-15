@@ -12,7 +12,9 @@ export const PdfService = {
       let data: Uint8Array;
 
       if (typeof pdfSource === 'string') {
+        if (!pdfSource) throw new Error("URL sorgente PDF mancante");
         const response = await fetch(pdfSource);
+        if (!response.ok) throw new Error(`Errore caricamento PDF: ${response.status}`);
         const arrayBuffer = await response.arrayBuffer();
         data = new Uint8Array(arrayBuffer);
       } else {
