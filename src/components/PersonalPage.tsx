@@ -240,47 +240,37 @@ export default function PersonalPage({ onNavigateToHome, booksCount, notesCount 
 
                 <div className="bg-red-50 border border-red-100 p-4 rounded-xl space-y-3">
                   <h3 className="text-sm font-bold text-red-800 flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> RISOLUZIONE PERMISSION DENIED (TABELLA BOOKS)
+                    <Shield className="w-4 h-4" /> PATCH DI EMERGENZA (DIARIO & LIBRI)
                   </h3>
                   <p className="text-xs text-red-700 leading-relaxed font-bold">
-                    Esegui questo script nel SQL Editor di Supabase per sbloccare definitivamente l'inserimento dei libri.
+                    Esegui questo script per risolvere l'errore 23503 (Foreign Key) e il 400 (Join failed) su Notes.
                   </p>
                   <div className="relative group">
                     <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-[10px] overflow-x-auto leading-relaxed">
-{`-- 1. SBLOCCO PERMESSI SCHEMA E TABELLE
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
-GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated;
+{`-- 1. RENDERE book_id OPZIONALE IN NOTES
+ALTER TABLE notes DROP CONSTRAINT IF EXISTS notes_book_id_fkey;
+ALTER TABLE notes ALTER COLUMN book_id DROP NOT NULL;
+ALTER TABLE notes ADD CONSTRAINT notes_book_id_fkey FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE SET NULL;
 
--- 2. DISABILITA O REIMPOSTA RLS SU BOOKS (SCELTA AGGRESSIVA PER RISOLVERE)
--- Se vuoi risolvere subito, puoi anche disabilitare RLS per la tabella books:
--- ALTER TABLE books DISABLE ROW LEVEL SECURITY;
-
--- OPPURE esegui queste policy ultra-permissive:
+-- 2. ABILITA LETTURA PUBBLICA SU BOOKS (Necessaria per il JOIN)
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Libri leggibili da tutti" ON books;
 CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);
 
-DROP POLICY IF EXISTS "Chiunque può inserire libri" ON books;
-CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Chiunque può aggiornare libri" ON books;
-CREATE POLICY "Chiunque può aggiornare libri" ON books FOR UPDATE USING (true);
-
--- 3. AGGIORNAMENTO COLONNE (Assicurati che esistano)
-ALTER TABLE books ADD COLUMN IF NOT EXISTS file_url TEXT;
-ALTER TABLE books ADD COLUMN IF NOT EXISTS external_url TEXT;`}
+-- 3. PERMESSI DI SCHEMA
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON TABLE books TO anon, authenticated;
+GRANT ALL ON TABLE notes TO authenticated;`}
                     </pre>
                     <button
                       onClick={() => {
-                        const sql = `GRANT USAGE ON SCHEMA public TO anon, authenticated;\nGRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;\nGRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;\nALTER TABLE books ENABLE ROW LEVEL SECURITY;\nDROP POLICY IF EXISTS "Libri leggibili da tutti" ON books; CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);\nDROP POLICY IF EXISTS "Chiunque può inserire libri" ON books; CREATE POLICY "Chiunque può inserire libri" ON books FOR INSERT WITH CHECK (true);\nDROP POLICY IF EXISTS "Chiunque può aggiornare libri" ON books; CREATE POLICY "Chiunque può aggiornare libri" ON books FOR UPDATE USING (true);\nALTER TABLE books ADD COLUMN IF NOT EXISTS file_url TEXT;\nALTER TABLE books ADD COLUMN IF NOT EXISTS external_url TEXT;`;
+                        const sql = `ALTER TABLE notes DROP CONSTRAINT IF EXISTS notes_book_id_fkey;\nALTER TABLE notes ALTER COLUMN book_id DROP NOT NULL;\nALTER TABLE notes ADD CONSTRAINT notes_book_id_fkey FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE SET NULL;\nALTER TABLE books ENABLE ROW LEVEL SECURITY;\nDROP POLICY IF EXISTS "Libri leggibili da tutti" ON books; CREATE POLICY "Libri leggibili da tutti" ON books FOR SELECT USING (true);\nGRANT USAGE ON SCHEMA public TO anon, authenticated;\nGRANT SELECT ON TABLE books TO anon, authenticated;\nGRANT ALL ON TABLE notes TO authenticated;`;
                         navigator.clipboard.writeText(sql);
-                        alert('Script di sblocco copiato!');
+                        alert('Patch di emergenza copiata!');
                       }}
                       className="absolute top-2 right-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-md transition-all opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-white text-[10px]"
                     >
-                      <Copy className="w-3.5 h-3.5" /> Copia Sblocco
+                      <Copy className="w-3.5 h-3.5" /> Copia Patch
                     </button>
                   </div>
                 </div>

@@ -53,7 +53,7 @@ export default function DiaryPage() {
       user_id: user.id,
       title: noteTitle,
       content: noteContent,
-      book_id: noteBookId || undefined
+      book_id: noteBookId && noteBookId.trim() !== '' ? noteBookId : undefined
     });
   };
 
