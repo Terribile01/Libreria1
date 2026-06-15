@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, Square, Volume2, VolumeX, ListMusic, Headphones, Settings } from 'lucide-react';
 import { AudioTrack } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { BookService } from '../utils/database';
 
 interface ListenPageProps {
   tracks: AudioTrack[];
@@ -10,6 +13,7 @@ interface ListenPageProps {
 }
 
 export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: ListenPageProps) {
+  const { user } = useAuth();
   // --- STATO DEL PLAYER ---
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -22,13 +26,44 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>('');
 
-  // Identifica la traccia attiva dalle props
-  const activeTrack = tracks.find(t => t.id === activeTrackId) || tracks[0];
-  
-  // LOGICA DI CARICAMENTO: Uniamo le righe della transcript per creare il testo da leggere
-  const fullText = activeTrack.transcript.map(line => line.text).join(' ');
+  // Web Speech API state
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
 
-  // Inizializzazione Voci Browser
+  // Fetch library to support dynamic tracks
+  const { data: readings = [], isLoading: isLoadingLibrary } = useQuery({
+    queryKey: ['readings', user?.id],
+    queryFn: () => BookService.getUserReadings(user!.id),
+    enabled: !!user,
+  });
+
+  // Find currently active track (static or virtual)
+  const activeTrack = useMemo(() => {
+    // 1. Try static tracks
+    const staticTrack = tracks.find(t => t.id === activeTrackId);
+    if (staticTrack) return staticTrack;
+
+    // 2. Try library books
+    const reading = readings.find(r => r.book_id === activeTrackId || r.id === activeTrackId);
+    if (reading && reading.book) {
+      return {
+        id: reading.book.id,
+        title: reading.book.title,
+        author: reading.book.author,
+        coverUrl: reading.book.coverUrl,
+        chapter: 'Sintonizzazione Integrale',
+        durationSeconds: 1800,
+        transcript: [{ time: 0, text: reading.book.description }]
+      } as AudioTrack;
+    }
+
+    // 3. Fallback
+    return tracks[0];
+  }, [activeTrackId, tracks, readings]);
+
+  // The full text to be read
+  const fullText = activeTrack?.transcript.map(line => line.text).join(' ') || "";
+
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
@@ -36,17 +71,19 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
       const itaVoice = availableVoices.find(v => v.lang.startsWith('it'));
       if (itaVoice) setSelectedVoice(itaVoice.name);
     };
+
     window.speechSynthesis.onvoiceschanged = loadVoices;
     loadVoices();
-    return () => window.speechSynthesis.cancel();
+
+    return () => {
+      window.speechSynthesis.cancel();
+    };
   }, []);
 
-  // Reset se la traccia cambia
+  // Reset when track changes
   useEffect(() => {
     handleStop();
   }, [activeTrackId]);
-
-  // --- LOGICA PLAYER (WEB SPEECH API) ---
 
   const handlePlay = () => {
     if (isPaused) {
@@ -65,9 +102,9 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
     utterance.rate = rate;
     utterance.lang = 'it-IT';
 
-    // Mappatura tempo reale: usiamo charIndex per stimare ilcurrentTime dei dati originali
     utterance.onboundary = (event) => {
       if (event.name === 'word') {
+        // Map character index to the track's duration for the progress bar and highlighting
         const progress = event.charIndex / fullText.length;
         setCurrentTime(Math.floor(progress * activeTrack.durationSeconds));
       }
@@ -132,12 +169,12 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
 
           <div className="space-y-8 flex-1">
             <div className="flex flex-col sm:flex-row gap-6 items-center">
-              <div className="w-32 h-32 rounded-2xl bg-surface-container overflow-hidden flex-shrink-0 book-shadow relative">
+              <div className="w-32 h-32 rounded-2xl bg-surface-container overflow-hidden flex-shrink-0 book-shadow relative group">
                 <img src={activeTrack.coverUrl} className="w-full h-full object-cover" />
                 {isPlaying && (
-                  <div className="absolute inset-0 bg-primary/25 backdrop-blur-[2px] flex items-center justify-center gap-1">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="w-1 bg-white rounded-full animate-bounce" style={{ height: '20px', animationDelay: `${i * 0.1}s` }} />
+                  <div className="absolute inset-0 bg-primary/25 backdrop-blur-[2px] flex items-center justify-center gap-[3px]">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="w-[3px] bg-white rounded-full animate-bounce" style={{ height: '24px', animationDelay: `${i * 0.15}s`, animationDuration: '0.8s' }} />
                     ))}
                   </div>
                 )}
@@ -249,8 +286,33 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
                       <p className="font-sans text-[10px] text-on-surface-variant/70 truncate italic">{track.author}</p>
                     </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
+
+              {/* User Library */}
+              {user && (
+                <div className="space-y-2">
+                  <span className="text-[9px] font-bold text-on-surface-variant/40 uppercase tracking-widest block px-2">La Tua Libreria</span>
+                  {isLoadingLibrary ? (
+                    <div className="p-4 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-primary/30" /></div>
+                  ) : readings.length > 0 ? (
+                    readings.map((r) => (
+                      <div
+                        key={r.id}
+                        onClick={() => { handleStop(); if (r.book) setActiveTrackId(r.book.id); }}
+                        className={`flex items-center gap-3 p-2 rounded-xl border cursor-pointer transition-all ${activeTrackId === r.book?.id ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-surface-container'}`}
+                      >
+                        <img src={r.book?.coverUrl} className="w-10 h-10 rounded object-cover shadow-sm flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <h5 className="font-sans font-semibold text-[11px] truncate">{r.book?.title}</h5>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-[10px] text-on-surface-variant/40 italic px-2">Nessun libro salvato.</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -26,7 +26,25 @@ export default function App() {
     if (matchedTrack) {
       setActiveTrackId(matchedTrack.id);
     } else {
+      // If no track exists, we fallback to the first one for now
       setActiveTrackId('at-1');
+    }
+    setCurrentPage('listen');
+  };
+
+  // Play a specific book (from Library or Search)
+  const handlePlayBook = (book: Book) => {
+    // Check if we have a predefined audio track for this book
+    const matchedTrack = INITIAL_AUDIO_TRACKS.find(
+      t => t.title.toLowerCase() === book.title.toLowerCase()
+    );
+
+    if (matchedTrack) {
+      setActiveTrackId(matchedTrack.id);
+    } else {
+      // We are using the book's ID directly. ListenPage will handle
+      // generating the virtual track from reading data if needed.
+      setActiveTrackId(book.id);
     }
     setCurrentPage('listen');
   };
@@ -37,7 +55,7 @@ export default function App() {
         return (
           <HomePage 
             books={books}
-            onPlayTrack={handlePlayTrackByTitle}
+            onPlayTrack={handlePlayBook}
             onNavigateToLibrary={() => setCurrentPage('library')}
           />
         );
@@ -45,12 +63,14 @@ export default function App() {
         return (
           <SearchPage 
             books={books}
-            onPlayTrack={handlePlayTrackByTitle}
+            onPlayTrack={handlePlayBook}
           />
         );
       case 'library':
         return (
-          <LibraryPage />
+          <LibraryPage
+            onPlayTrack={handlePlayBook}
+          />
         );
       case 'diary':
         return (
@@ -71,7 +91,7 @@ export default function App() {
           />
         );
       default:
-        return <HomePage books={books} onPlayTrack={handlePlayTrackByTitle} onNavigateToLibrary={() => setCurrentPage('library')} />;
+        return <HomePage books={books} onPlayTrack={handlePlayBook} onNavigateToLibrary={() => setCurrentPage('library')} />;
     }
   };
 
