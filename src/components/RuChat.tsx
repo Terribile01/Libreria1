@@ -56,6 +56,7 @@ const FormattedMessage = ({ content, isUser }: { content: string; isUser: boolea
 
 export default function RuChat() {
   const [isOpen, setIsOpen] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -175,32 +176,35 @@ export default function RuChat() {
   const speak = (text: string) => {
     window.speechSynthesis.cancel();
 
-    // Clean text
-    const cleanText = text.replace(/\*\*/g, '');
+    setTimeout(() => {
+      // Clean text
+      const cleanText = text.replace(/\*\*/g, '');
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'it-IT';
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utteranceRef.current = utterance;
+      utterance.lang = 'it-IT';
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => { setIsSpeaking(false); utteranceRef.current = null; };
+      utterance.onerror = (err) => { console.error("TTS Chat Error:", err); setIsSpeaking(false); utteranceRef.current = null; };
 
-    const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(v =>
-      v.lang.startsWith('it') &&
-      (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('premium')) &&
-      (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('elsa') || v.name.toLowerCase().includes('alice'))
-    ) || voices.find(v =>
-      v.lang.startsWith('it') &&
-      (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('elsa') || v.name.toLowerCase().includes('alice'))
-    ) || voices.find(v => v.lang.startsWith('it'));
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(v =>
+        v.lang.startsWith('it') &&
+        (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('premium')) &&
+        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('elsa') || v.name.toLowerCase().includes('alice'))
+      ) || voices.find(v =>
+        v.lang.startsWith('it') &&
+        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('elsa') || v.name.toLowerCase().includes('alice'))
+      ) || voices.find(v => v.lang.startsWith('it'));
 
-    if (femaleVoice) utterance.voice = femaleVoice;
+      if (femaleVoice) utterance.voice = femaleVoice;
 
-    utterance.pitch = 1.0;
-    utterance.rate = 1.2; // Optimized speed as requested
+      utterance.pitch = 1.0;
+      utterance.rate = 1.2;
 
-    window.speechSynthesis.speak(utterance);
+      window.speechSynthesis.speak(utterance);
+    }, 50);
   };
 
   return (

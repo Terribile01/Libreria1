@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 export default function NotesPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const utteranceRef = React.useRef<SpeechSynthesisUtterance | null>(null);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
@@ -120,28 +121,32 @@ export default function NotesPage() {
   const speak = (note: DiaryNote) => {
     window.speechSynthesis.cancel();
 
-    const introText = note.book
-      ? `Nota associata al libro ${note.book.title}. `
-      : "Pensiero libero. ";
+    setTimeout(() => {
+      const introText = note.book
+        ? `Nota associata al libro ${note.book.title}. `
+        : "Pensiero libero. ";
 
-    const fullSpeech = `${introText} Titolo: ${note.title}. Contenuto: ${note.content}`;
+      const fullSpeech = `${introText} Titolo: ${note.title}. Contenuto: ${note.content}`;
 
-    const utterance = new SpeechSynthesisUtterance(fullSpeech);
-    utterance.rate = 1.2;
-    utterance.lang = 'it-IT';
+      const utterance = new SpeechSynthesisUtterance(fullSpeech);
+      utteranceRef.current = utterance;
+      utterance.rate = 1.2;
+      utterance.lang = 'it-IT';
 
-    const preferred = voices.find(v =>
-      v.lang.startsWith('it') &&
-      (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural')) &&
-      (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('alice'))
-    ) || voices.find(v => v.lang.startsWith('it')) || voices[0];
+      const preferred = voices.find(v =>
+        v.lang.startsWith('it') &&
+        (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural')) &&
+        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('alice'))
+      ) || voices.find(v => v.lang.startsWith('it')) || voices[0];
 
-    if (preferred) utterance.voice = preferred;
+      if (preferred) utterance.voice = preferred;
 
-    utterance.onstart = () => setIsSpeaking(note.id);
-    utterance.onend = () => setIsSpeaking(null);
-    utterance.onerror = () => setIsSpeaking(null);
-    window.speechSynthesis.speak(utterance);
+      utterance.onstart = () => setIsSpeaking(note.id);
+      utterance.onend = () => { setIsSpeaking(null); utteranceRef.current = null; };
+      utterance.onerror = (err) => { console.error("TTS Note Error:", err); setIsSpeaking(null); utteranceRef.current = null; };
+
+      window.speechSynthesis.speak(utterance);
+    }, 50);
   };
 
   const stopSpeaking = () => {
