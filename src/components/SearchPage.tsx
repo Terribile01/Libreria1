@@ -70,7 +70,13 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
           } else {
             results = await BookSearchService.unifiedSearch(searchQuery);
           }
-          setExternalResults(results);
+
+          // Metadata cleaning with AI
+          if (results.length > 0) {
+            results = await AIProvider.cleanMetadata(results as any);
+          }
+
+          setExternalResults(results as ExternalBook[]);
         } catch (error) {
           console.error("Search error:", error);
         } finally {
@@ -378,7 +384,7 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
 
           {isSearchingExternal && (
             <div className="flex items-center gap-2 text-xs font-sans text-primary mb-4 animate-pulse">
-               <Loader2 className="w-3.5 h-3.5 animate-spin" /> Consultazione cataloghi mondiali in corso...
+               <Loader2 className="w-3.5 h-3.5 animate-spin" /> Consultazione e pulizia cataloghi mondiali in corso...
             </div>
           )}
 

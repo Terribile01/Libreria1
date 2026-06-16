@@ -2,7 +2,7 @@ import { Book } from '../types';
 import { ApiKeyManager } from './apiKeys';
 
 export interface ExternalBook extends Book {
-  source: 'OpenLibrary' | 'ProjectGutenberg' | 'GoogleBooks' | 'Local';
+  source: 'OpenLibrary' | 'ProjectGutenberg' | 'GoogleBooks' | 'Local' | 'InternetArchive';
   externalUrl?: string;
 }
 
@@ -12,17 +12,16 @@ export interface ExternalBook extends Book {
 export const BookSearchService = {
 
   /**
-   * Search on Open Library
+   * Search on Open Library (Used for metadata enrichment)
    */
   searchOpenLibrary: async (query: string): Promise<ExternalBook[]> => {
     if (!query || query.length < 3) return [];
 
     try {
-      // Trying to prioritize Italian via query addition
-      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}+language:ita&limit=10`);
+      const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=5`);
       const data = await response.json();
 
-      let results = data.docs.map((doc: any) => ({
+      return data.docs.map((doc: any) => ({
         id: `ol-${doc.key.replace('/works/', '')}`,
         title: doc.title,
         author: doc.author_name ? doc.author_name[0] : 'Autore Sconosciuto',
@@ -30,32 +29,41 @@ export const BookSearchService = {
           ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
           : 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300',
         category: 'Romanzi',
-        description: doc.first_sentence ? doc.first_sentence[0] : `Un'opera affascinante catalogata in Open Library. ${doc.subject ? 'Tratta di: ' + doc.subject.slice(0, 3).join(', ') : ''}`,
+        description: doc.first_sentence ? doc.first_sentence[0] : `Un'opera affascinante catalogata in Open Library.`,
         source: 'OpenLibrary' as const,
         externalUrl: `https://openlibrary.org${doc.key}`
       }));
-
-      // If no results with Italian filter, try general search
-      if (results.length === 0) {
-        const genResponse = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=5`);
-        const genData = await genResponse.json();
-        results = genData.docs.map((doc: any) => ({
-          id: `ol-${doc.key.replace('/works/', '')}`,
-          title: doc.title,
-          author: doc.author_name ? doc.author_name[0] : 'Autore Sconosciuto',
-          coverUrl: doc.cover_i
-            ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
-            : 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300',
-          category: 'Romanzi',
-          description: doc.first_sentence ? doc.first_sentence[0] : `Un'opera affascinante catalogata in Open Library.`,
-          source: 'OpenLibrary' as const,
-          externalUrl: `https://openlibrary.org${doc.key}`
-        }));
-      }
-
-      return results;
     } catch (error) {
       console.error("OpenLibrary search error:", error);
+      return [];
+    }
+  },
+
+  /**
+   * Search on Internet Archive
+   */
+  searchInternetArchive: async (query: string): Promise<ExternalBook[]> => {
+    if (!query || query.length < 3) return [];
+
+    try {
+      // Search for books with full text available
+      const response = await fetch(`https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}+AND+mediatype:texts&fl[]=identifier,title,creator,description,subject&rows=10&output=json`);
+      const data = await response.json();
+
+      if (!data.response || !data.response.docs) return [];
+
+      return data.response.docs.map((doc: any) => ({
+        id: `ia-${doc.identifier}`,
+        title: doc.title,
+        author: doc.creator ? (Array.isArray(doc.creator) ? doc.creator[0] : doc.creator) : 'Autore Sconosciuto',
+        coverUrl: `https://archive.org/services/img/${doc.identifier}`,
+        category: 'Classici',
+        description: doc.description ? (Array.isArray(doc.description) ? doc.description[0].substring(0, 200) : doc.description.substring(0, 200)) : 'Documento storico dall\'Internet Archive.',
+        source: 'InternetArchive' as const,
+        externalUrl: `https://archive.org/details/${doc.identifier}`
+      }));
+    } catch (error) {
+      console.error("Internet Archive search error:", error);
       return [];
     }
   },
@@ -67,11 +75,10 @@ export const BookSearchService = {
     if (!query || query.length < 3) return [];
 
     try {
-      // Prioritize Italian by searching with language filter
-      const response = await fetch(`https://gutendex.com/books/?languages=it&search=${encodeURIComponent(query)}`);
+      const response = await fetch(`https://gutendex.com/books/?search=${encodeURIComponent(query)}`);
       const data = await response.json();
 
-      let results = data.results.slice(0, 10).map((book: any) => ({
+      return data.results.slice(0, 10).map((book: any) => ({
         id: `pg-${book.id}`,
         title: book.title,
         author: book.authors.length > 0 ? book.authors[0].name : 'Autore Sconosciuto',
@@ -81,24 +88,6 @@ export const BookSearchService = {
         source: 'ProjectGutenberg' as const,
         externalUrl: (book.formats && (book.formats['text/html'] || book.formats['text/plain'])) || `https://www.gutenberg.org/ebooks/${book.id}`
       }));
-
-      // If no Italian results, try general
-      if (results.length === 0) {
-        const genResponse = await fetch(`https://gutendex.com/books/?search=${encodeURIComponent(query)}`);
-        const genData = await genResponse.json();
-        results = genData.results.slice(0, 5).map((book: any) => ({
-          id: `pg-${book.id}`,
-          title: book.title,
-          author: book.authors.length > 0 ? book.authors[0].name : 'Autore Sconosciuto',
-          coverUrl: (book.formats && book.formats['image/jpeg']) || 'https://images.unsplash.com/photo-1543004218-ee14110497f8?auto=format&fit=crop&q=80&w=300',
-          category: 'Classici',
-          description: `Un classico immortale dal Progetto Gutenberg.`,
-          source: 'ProjectGutenberg' as const,
-          externalUrl: (book.formats && (book.formats['text/html'] || book.formats['text/plain'])) || `https://www.gutenberg.org/ebooks/${book.id}`
-        }));
-      }
-
-      return results;
     } catch (error) {
       console.error("Project Gutenberg search error:", error);
       return [];
@@ -106,7 +95,7 @@ export const BookSearchService = {
   },
 
   /**
-   * Search on Google Books (Very good for Italian)
+   * Search on Google Books (General Fallback)
    */
   searchGoogleBooks: async (query: string): Promise<ExternalBook[]> => {
     if (!query || query.length < 3) return [];
@@ -116,17 +105,10 @@ export const BookSearchService = {
       const apiKey = ApiKeyManager.get('GOOGLE_BOOKS_API_KEY');
       const keyQuery = apiKey ? `&key=${apiKey}` : '';
 
-      // Use langRestrict=it for Italian priority
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&langRestrict=it&maxResults=15${keyQuery}`);
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=15${keyQuery}`);
       const data = await response.json();
 
-      if (!data.items || data.items.length === 0) {
-        console.log(`[GoogleBooks] No results with langRestrict=it, trying general search...`);
-        const genResponse = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10${keyQuery}`);
-        const genData = await genResponse.json();
-        if (!genData.items) return [];
-        data.items = genData.items;
-      }
+      if (!data.items) return [];
 
       console.log(`[GoogleBooks] Found ${data.items.length} items`);
 
@@ -195,34 +177,50 @@ export const BookSearchService = {
   },
 
   /**
-   * Combined search - Enhanced to be more resilient and fast
+   * Combined search - Enhanced hierarchy and metadata enrichment
    */
   unifiedSearch: async (query: string): Promise<ExternalBook[]> => {
     console.log(`[UnifiedSearch] Starting search for: ${query}`);
 
-    // Create an array of promises but handle each individually to avoid one failing all
     const searchPromises = [
       BookSearchService.searchLiberLiber(query).catch(e => { console.error("LL Error", e); return []; }),
+      BookSearchService.searchInternetArchive(query).catch(e => { console.error("IA Error", e); return []; }),
+      BookSearchService.searchGutenberg(query).catch(e => { console.error("PG Error", e); return []; }),
       BookSearchService.searchGoogleBooks(query).catch(e => { console.error("GB Error", e); return []; }),
-      BookSearchService.searchOpenLibrary(query).catch(e => { console.error("OL Error", e); return []; }),
-      BookSearchService.searchGutenberg(query).catch(e => { console.error("PG Error", e); return []; })
+      BookSearchService.searchOpenLibrary(query).catch(e => { console.error("OL Error", e); return []; })
     ];
 
     const resultsArray = await Promise.all(searchPromises);
-    const [llResults, gbResults, olResults, pgResults] = resultsArray;
+    const [llResults, iaResults, pgResults, gbResults, olResults] = resultsArray;
 
-    console.log(`[UnifiedSearch] Results - LL: ${llResults.length}, GB: ${gbResults.length}, OL: ${olResults.length}, PG: ${pgResults.length}`);
+    console.log(`[UnifiedSearch] Results - LL: ${llResults.length}, IA: ${iaResults.length}, PG: ${pgResults.length}, GB: ${gbResults.length}, OL: ${olResults.length}`);
 
-    // Priority: Liber Liber (if found), then Google Books, then others
-    const all = [...llResults, ...gbResults, ...olResults, ...pgResults];
+    // Hierarchy: Liber Liber > IA > PG > Google (Fallback)
+    const primaryResults = [...llResults, ...iaResults, ...pgResults, ...gbResults];
 
-    // Filter duplicates by title and author to be more effective across different sources
+    // Filter duplicates
     const seen = new Set();
-    return all.filter(book => {
+    const uniqueResults = primaryResults.filter(book => {
       const key = `${book.title.toLowerCase().trim()}|${book.author.toLowerCase().trim()}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
+
+    // Enrichment: Use OpenLibrary to fill missing descriptions in uniqueResults
+    const finalResults = uniqueResults.map(book => {
+      if (book.description && book.description.length > 50) return book;
+
+      const enrichment = olResults.find(ol =>
+        ol.title.toLowerCase().includes(book.title.toLowerCase().substring(0, 10))
+      );
+
+      if (enrichment && enrichment.description) {
+        return { ...book, description: enrichment.description };
+      }
+      return book;
+    });
+
+    return finalResults;
   }
 };
