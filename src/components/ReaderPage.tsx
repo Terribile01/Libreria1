@@ -73,10 +73,7 @@ export default function ReaderPage({ bookId, onNavigateToLibrary }: ReaderPagePr
   // Fetch notes for this book
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.id, bookId],
-    queryFn: async () => {
-      const allNotes = await DiaryService.getUserNotes(user!.id);
-      return allNotes.filter(n => n.book_id === bookId);
-    },
+    queryFn: () => DiaryService.getUserNotes(user!.id, bookId!),
     enabled: !!user && !!bookId,
   });
 
