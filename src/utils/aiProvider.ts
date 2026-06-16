@@ -111,5 +111,41 @@ IMPORTANTE: Non menzionare mai, né proporre mai la generazione di immagini. Que
     Usa un tono accogliente, profondo e leggermente misterioso. Concentrati sull'essenza dell'opera e sul viaggio spirituale che offre al lettore. Non usare prefazioni come "Ecco la presentazione", vai direttamente al testo poetico.`;
 
     return await AIProvider.generateResponse([{ role: 'user', content: prompt }]);
+  },
+
+  /**
+   * Cleans book metadata (titles and authors) using AI
+   */
+  cleanMetadata: async (books: { title: string, author: string }[]) => {
+    if (books.length === 0) return books;
+
+    const booksList = books.map((b, i) => `${i}. T: "${b.title}" | A: "${b.author}"`).join('\n');
+
+    const prompt = `Sei un esperto bibliotecario. Pulisci la seguente lista di libri rimuovendo dai titoli e dagli autori ogni elemento superfluo come "Edizione critica", "Volume 1", "Traduzione di", date, codici ISBN o note editoriali tra parentesi.
+    Restituisci ESATTAMENTE lo stesso numero di righe, seguendo questo formato:
+    "Titolo Pulito | Autore Pulito"
+
+    LISTA DA PULIRE:
+    ${booksList}`;
+
+    try {
+      const response = await AIProvider.generateResponse([{ role: 'user', content: prompt }]);
+      const lines = response.split('\n').filter((l: string) => l.includes('|'));
+
+      return books.map((book, i) => {
+        if (lines[i]) {
+          const [title, author] = lines[i].split('|').map((s: string) => s.replace(/"/g, '').trim());
+          return {
+            ...book,
+            title: title || book.title,
+            author: author || book.author
+          };
+        }
+        return book;
+      });
+    } catch (error) {
+      console.error("AI Metadata cleaning failed:", error);
+      return books;
+    }
   }
 };
