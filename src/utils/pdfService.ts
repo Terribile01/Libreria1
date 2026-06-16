@@ -5,20 +5,34 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 
 export const PdfService = {
   /**
-   * Estrae il testo grezzo da un file PDF (Blob o URL).
+   * Estrae il testo grezzo da un file (PDF o TXT).
    */
-  extractRawText: async (pdfSource: string | Blob): Promise<string> => {
+  extractRawText: async (source: string | Blob): Promise<string> => {
     try {
+      // 1. Check if it's a TXT file via URL extension
+      if (typeof source === 'string' && source.toLowerCase().endsWith('.txt')) {
+        const response = await fetch(source);
+        if (!response.ok) throw new Error(`Errore caricamento TXT: ${response.status}`);
+        return await response.text();
+      }
+
       let data: Uint8Array;
 
-      if (typeof pdfSource === 'string') {
-        if (!pdfSource) throw new Error("URL sorgente PDF mancante");
-        const response = await fetch(pdfSource);
-        if (!response.ok) throw new Error(`Errore caricamento PDF: ${response.status}`);
+      if (typeof source === 'string') {
+        if (!source) throw new Error("URL sorgente mancante");
+        const response = await fetch(source);
+        if (!response.ok) throw new Error(`Errore caricamento file: ${response.status}`);
+
+        // Handle TXT even if extension is missing but content-type is text
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('text/plain')) {
+          return await response.text();
+        }
+
         const arrayBuffer = await response.arrayBuffer();
         data = new Uint8Array(arrayBuffer);
       } else {
-        const arrayBuffer = await pdfSource.arrayBuffer();
+        const arrayBuffer = await source.arrayBuffer();
         data = new Uint8Array(arrayBuffer);
       }
 

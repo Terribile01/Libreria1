@@ -19,6 +19,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const utteranceRef = React.useRef<SpeechSynthesisUtterance | null>(null);
   const [volume, setVolume] = useState(1);
   const [rate, setRate] = useState(1.2);
   const [isMuted, setIsMuted] = useState(false);
@@ -176,32 +177,49 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
       return;
     }
 
+    // A small delay after cancel helps stability on mobile
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(fullText);
-    const voice = voices.find(v => v.name === selectedVoice);
-    if (voice) utterance.voice = voice;
-    utterance.volume = isMuted ? 0 : volume;
-    utterance.rate = rate;
-    if (voice) utterance.lang = voice.lang;
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(fullText);
+      utteranceRef.current = utterance; // Avoid GC
 
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        // Map character index to the track's duration for the progress bar and highlighting
-        const progress = event.charIndex / fullText.length;
-        setCurrentTime(Math.floor(progress * activeTrack.durationSeconds));
+      const voice = voices.find(v => v.name === selectedVoice);
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      } else {
+        utterance.lang = 'it-IT';
       }
-    };
 
-    utterance.onend = () => {
-      setIsPlaying(false);
+      utterance.volume = isMuted ? 0 : volume;
+      utterance.rate = rate;
+
+      utterance.onboundary = (event) => {
+        if (event.name === 'word') {
+          const progress = event.charIndex / fullText.length;
+          setCurrentTime(Math.floor(progress * activeTrack.durationSeconds));
+        }
+      };
+
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setIsPaused(false);
+        setCurrentTime(0);
+        utteranceRef.current = null;
+      };
+
+      utterance.onerror = (err) => {
+        console.error("TTS Error in ListenPage:", err);
+        setIsPlaying(false);
+        setIsPaused(false);
+        utteranceRef.current = null;
+      };
+
+      window.speechSynthesis.speak(utterance);
+      setIsPlaying(true);
       setIsPaused(false);
-      setCurrentTime(0);
-    };
-
-    window.speechSynthesis.speak(utterance);
-    setIsPlaying(true);
-    setIsPaused(false);
+    }, 50);
   };
 
   const handlePause = () => {
@@ -270,7 +288,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
             <div className="flex-1 flex flex-col items-center justify-center py-20 text-primary">
               <Loader2 className="w-10 h-10 animate-spin mb-4" />
               <p className="font-serif italic">
-                {isProcessingPdf ? 'Rù sta sintonizzando il tuo PDF...' : 'Preparando l\'aura di ascolto...'}
+                {isProcessingPdf ? 'Rù sta sintonizzando il tuo file...' : 'Preparando l\'aura di ascolto...'}
               </p>
             </div>
           ) : (
@@ -290,7 +308,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
                 <div className="text-center sm:text-left space-y-2 flex-1">
                   <div className="space-y-1">
                     <span className="px-2 py-0.5 bg-primary/10 text-primary font-sans font-bold text-[9px] tracking-widest uppercase rounded">
-                      {currentReading?.source_type === 'internal' ? 'Lettura Documento' : 'Sintonizzazione Attiva'}
+                      {currentReading?.source_type === 'internal' ? (currentReading.file_path?.toLowerCase().endsWith('.txt') ? 'Lettura Testo' : 'Lettura PDF') : 'Sintonizzazione Attiva'}
                     </span>
                     <h3 className="font-serif text-2xl text-on-surface font-semibold">{activeTrack.title}</h3>
                     <p className="font-sans text-sm text-on-surface-variant/70 italic">di {activeTrack.author}</p>

@@ -18,6 +18,15 @@ interface PersonalPageProps {
 }
 
 export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onNavigateToLibrary, onNavigateToDiary }: PersonalPageProps) {
+  const utteranceRef = React.useRef<SpeechSynthesisUtterance | null>(null);
+  const [voices, setVoices] = React.useState<SpeechSynthesisVoice[]>([]);
+
+  React.useEffect(() => {
+    const loadVoices = () => setVoices(window.speechSynthesis.getVoices());
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+  }, []);
+
   const { 
     user: currentUser,
     profile,
@@ -359,9 +368,26 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
                   <button
                     onClick={() => {
                       window.speechSynthesis.cancel();
-                      const utterance = new SpeechSynthesisUtterance(item.content);
-                      utterance.rate = 1.2;
-                      window.speechSynthesis.speak(utterance);
+                      setTimeout(() => {
+                        const bookRef = item.book ? `Riferimento libro: ${item.book.title}. ` : "Pensiero libero. ";
+                        const dateRef = `Data della nota: ${new Date(item.created_at).toLocaleDateString()}. `;
+                        const fullSpeech = `${bookRef} ${dateRef} Titolo: ${item.title}. Riflessione: ${item.content}`;
+
+                        const utterance = new SpeechSynthesisUtterance(fullSpeech);
+                        utteranceRef.current = utterance;
+                        utterance.rate = 1.2;
+                        utterance.lang = 'it-IT';
+
+                        const preferred = voices.find(v =>
+                          v.lang.startsWith('it') &&
+                          (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural')) &&
+                          (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('alice'))
+                        ) || voices.find(v => v.lang.startsWith('it')) || voices[0];
+
+                        if (preferred) utterance.voice = preferred;
+
+                        window.speechSynthesis.speak(utterance);
+                      }, 50);
                     }}
                     className="flex-1 px-4 py-2.5 bg-primary/10 text-primary rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2"
                   >
@@ -374,7 +400,7 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
               )}
               {detailType === 'bookmark' && (
                 <button onClick={() => { onNavigateToListen(book.id); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
-                  <RotateCw className="w-4 h-4" /> Riprendi Ascolto
+                  <RotateCw className="w-4 h-4" /> Riprendi
                 </button>
               )}
               <button onClick={() => { setSelectedDetailItem(null); setDetailType(null); }} className="px-6 py-2.5 border rounded-xl text-xs font-bold uppercase">Chiudi</button>
