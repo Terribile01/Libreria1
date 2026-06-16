@@ -1,5 +1,7 @@
-import { User, BookOpen, Search, Library, Headset, ShieldAlert, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { User, BookOpen, Search, Library, Headset, ShieldAlert, FileText, Menu, X, Home } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface NavbarProps {
   currentPage: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader';
@@ -8,6 +10,7 @@ interface NavbarProps {
 
 export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
   const { currentUser, isAuthenticated } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
     { id: 'home', label: 'Home', icon: BookOpen },
@@ -17,6 +20,8 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
     { id: 'diary', label: 'Note', icon: FileText },
     { id: 'listen', label: 'Ascolta', icon: Headset },
   ] as const;
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
     <header className="bg-surface/85 backdrop-blur-md sticky top-0 z-50 shadow-[0_15px_35px_rgba(83,98,79,0.03)] border-b border-surface-container/30 transition-all duration-300">
@@ -50,11 +55,36 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
           })}
         </div>
 
-        {/* Right Action: Profile / Credentials State */}
-        <div className="flex items-center gap-2">
+        {/* Right Actions */}
+        <div className="flex items-center gap-4">
+          {/* Mobile Quick Actions (Home & Profile) */}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage('home')}
+              className={`p-2 rounded-full transition-all ${currentPage === 'home' ? 'text-primary bg-primary/5' : 'text-on-surface-variant'}`}
+            >
+              <Home className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setCurrentPage('profile')}
+              className={`p-1 rounded-full transition-all border-2 ${currentPage === 'profile' ? 'border-primary' : 'border-transparent'}`}
+            >
+              {isAuthenticated && currentUser ? (
+                <img
+                  src={currentUser.avatarUrl}
+                  alt="avatar"
+                  className="w-7 h-7 rounded-full object-cover"
+                />
+              ) : (
+                <User className="w-6 h-6 text-on-surface-variant" />
+              )}
+            </button>
+          </div>
+
+          {/* Desktop Profile */}
           <button 
             onClick={() => setCurrentPage('profile')}
-            className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all duration-300 cursor-pointer ${
+            className={`hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all duration-300 cursor-pointer ${
               currentPage === 'profile'
                 ? 'bg-primary/10 border-primary/20 text-primary' 
                 : 'bg-surface-container/40 border-surface-container-high/40 hover:bg-surface-container text-on-surface-variant hover:text-primary'
@@ -85,48 +115,106 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               </>
             )}
           </button>
+
+          {/* Hamburger Menu (Mobile Only) */}
+          <button
+            onClick={toggleMenu}
+            className="md:hidden p-2 text-primary hover:bg-primary/5 rounded-xl transition-all"
+            aria-label="Menu"
+          >
+            <Menu className="w-8 h-8" />
+          </button>
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-md px-4 py-3 flex justify-around items-center border-t border-surface-container/50 shadow-[0_-10px_30px_rgba(83,98,79,0.04)] z-50">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setCurrentPage(item.id)}
-              className={`flex flex-col items-center gap-1 transition-all duration-300 cursor-pointer ${
-                isActive ? 'text-primary scale-105' : 'text-on-surface-variant/60'
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-[9px] font-semibold tracking-wider uppercase">{item.label}</span>
-            </button>
-          );
-        })}
-        
-        {/* Profile Mobile Item */}
-        <button
-          onClick={() => setCurrentPage('profile')}
-          className={`flex flex-col items-center gap-1 transition-all duration-300 cursor-pointer ${
-            currentPage === 'profile' ? 'text-primary scale-105' : 'text-on-surface-variant/60'
-          }`}
-        >
-          {isAuthenticated && currentUser ? (
-            <img 
-              src={currentUser.avatarUrl} 
-              alt="avatar" 
-              referrerPolicy="no-referrer"
-              className="w-5 h-5 rounded-full object-cover border border-primary/20"
+      {/* Side Drawer (Mobile) */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={toggleMenu}
+              className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-[60]"
             />
-          ) : (
-            <User className="w-5 h-5" />
-          )}
-          <span className="text-[9px] font-semibold tracking-wider uppercase">Profilo</span>
-        </button>
-      </nav>
+
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%', rotateY: 15 }}
+              animate={{ x: 0, rotateY: 0 }}
+              exit={{ x: '100%', rotateY: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="md:hidden fixed top-0 right-0 bottom-0 w-[85%] bg-surface z-[70] shadow-[-20px_0_50px_rgba(0,0,0,0.1)] flex flex-col origin-right overflow-hidden"
+              style={{ perspective: '1000px' }}
+            >
+              {/* Chromatic Wow Effect - Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-surface pointer-events-none" />
+              <div className="absolute -top-20 -left-20 w-60 h-60 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="p-6 flex justify-between items-center relative z-10 border-b border-surface-container/30">
+                <span className="font-serif text-2xl text-primary font-bold tracking-wider">Menu</span>
+                <button onClick={toggleMenu} className="p-2 text-primary hover:bg-primary/5 rounded-full transition-all">
+                  <X className="w-8 h-8" />
+                </button>
+              </div>
+
+              <div className="flex-1 py-8 px-6 space-y-8 relative z-10 overflow-y-auto">
+                {navItems.map((item, index) => {
+                  const Icon = item.icon;
+                  const isActive = currentPage === item.id;
+
+                  return (
+                    <motion.button
+                      key={item.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => {
+                        setCurrentPage(item.id);
+                        toggleMenu();
+                      }}
+                      className={`w-full flex items-center gap-5 p-4 rounded-2xl transition-all ${
+                        isActive
+                          ? 'bg-primary/10 text-primary shadow-[0_10px_25px_rgba(var(--primary-rgb),0.1)] border border-primary/20'
+                          : 'text-on-surface-variant hover:bg-surface-container/50'
+                      }`}
+                    >
+                      <Icon className={`w-7 h-7 ${isActive ? 'text-primary' : 'text-on-surface-variant/70'}`} />
+                      <span className={`font-serif text-xl tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
+                        {item.label}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-8 relative z-10 border-t border-surface-container/30 bg-surface-container/10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20">
+                    <img
+                      src={isAuthenticated && currentUser ? currentUser.avatarUrl : "https://images.unsplash.com/photo-1494790108377-be9c29b29330"}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-serif font-bold text-on-surface">
+                      {isAuthenticated && currentUser ? currentUser.username : "Nuovo Lettore"}
+                    </h4>
+                    <p className="text-xs text-on-surface-variant/60 uppercase tracking-widest font-sans font-bold">
+                      {isAuthenticated && currentUser ? currentUser.role : "Santuario Digitale"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

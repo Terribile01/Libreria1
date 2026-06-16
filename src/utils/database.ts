@@ -222,11 +222,9 @@ export interface DiaryNote {
 }
 
 export const DiaryService = {
-  // Get all user notes from the 'notes' table
-  getUserNotes: async (userId: string) => {
-    // We specify the join explicitly and use maybeSingle for safety if needed,
-    // though here we want multiple notes.
-    const { data, error } = await supabase
+  // Get user notes from the 'notes' table (optionally filtered by book)
+  getUserNotes: async (userId: string, bookId?: string) => {
+    let query = supabase
       .from('notes')
       .select(`
         id,
@@ -237,8 +235,13 @@ export const DiaryService = {
         created_at,
         book:books(id, title, author, cover_url, category, description, file_url, external_url)
       `)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .eq('user_id', userId);
+
+    if (bookId) {
+      query = query.eq('book_id', bookId);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error("Errore nel recupero note (DiaryService):", error);
