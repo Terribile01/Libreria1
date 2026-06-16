@@ -137,7 +137,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={toggleMenu}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
+              className="fixed inset-0 bg-black/50 z-[60] md:hidden"
             />
 
             {/* Drawer */}
@@ -149,18 +149,18 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               className="fixed inset-y-0 right-0 w-[85%] max-w-sm bg-white z-[70] shadow-[-20px_0_50px_rgba(0,0,0,0.2)] flex flex-col md:hidden"
               style={{ height: '100dvh' }}
             >
-              <div className="p-6 flex justify-between items-center border-b border-surface-container/50 bg-white shrink-0">
-                <span className="font-serif text-2xl text-primary font-bold tracking-wider">Menu</span>
+              <div className="p-5 flex justify-between items-center border-b border-surface-container/50 bg-white shrink-0">
+                <span className="font-serif text-xl text-primary font-bold tracking-wider">Menu</span>
                 <button
                   onClick={toggleMenu}
-                  className="p-2 text-primary hover:bg-primary/5 rounded-full transition-all"
+                  className="p-1.5 text-primary hover:bg-primary/5 rounded-full transition-all"
                   aria-label="Chiudi menu"
                 >
-                  <X className="w-8 h-8" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <div className="flex-1 py-8 px-6 space-y-4 overflow-y-auto bg-[#fdfcfb] custom-scrollbar">
+              <div className="flex-1 py-6 px-5 space-y-3 overflow-y-auto bg-[#fdfcfb] custom-scrollbar">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = currentPage === item.id;
@@ -172,16 +172,16 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
                         setCurrentPage(item.id);
                         toggleMenu();
                       }}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group ${
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group ${
                         isActive
-                          ? 'bg-primary text-white shadow-xl scale-[1.02]'
+                          ? 'bg-primary text-white shadow-lg scale-[1.01]'
                           : 'text-on-surface-variant bg-white border border-surface-container/30 hover:border-primary/30 hover:bg-primary/5'
                       }`}
                     >
-                      <div className={`p-2.5 rounded-xl transition-colors ${isActive ? 'bg-white/20' : 'bg-primary/10 text-primary group-hover:bg-primary/20'}`}>
-                        <Icon className="w-6 h-6" />
+                      <div className={`p-2 rounded-lg transition-colors ${isActive ? 'bg-white/20' : 'bg-primary/10 text-primary group-hover:bg-primary/20'}`}>
+                        <Icon className="w-5 h-5" />
                       </div>
-                      <span className={`font-serif text-lg tracking-wide text-left flex-1 ${isActive ? 'font-bold' : 'font-semibold'}`}>
+                      <span className={`font-sans text-[11px] uppercase tracking-[0.12em] text-left flex-1 ${isActive ? 'font-black' : 'font-bold'}`}>
                         {item.label}
                       </span>
                     </button>
@@ -190,7 +190,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-8 border-t border-surface-container/30 bg-white shrink-0">
+              <div className="p-6 border-t border-surface-container/30 bg-white shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20">
                     <img
