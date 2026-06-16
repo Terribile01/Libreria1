@@ -7,16 +7,21 @@ import SearchPage from './components/SearchPage';
 import LibraryPage from './components/LibraryPage';
 import NotesPage from './components/NotesPage';
 import ListenPage from './components/ListenPage';
+import ReaderPage from './components/ReaderPage';
 import PersonalPage from './components/PersonalPage';
 import RuChat from './components/RuChat';
 
 import { INITIAL_BOOKS, INITIAL_AUDIO_TRACKS } from './data';
 import { Book } from './types';
+import { BookService } from './utils/database';
+import { useAuth } from './context/AuthContext';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile'>('home');
+  const { user, isAuthenticated } = useAuth();
+  const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader'>('home');
   const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
   const [activeTrackId, setActiveTrackId] = useState<string>('at-1');
+  const [activeReaderBookId, setActiveReaderBookId] = useState<string | null>(null);
 
   // Play track navigation shortcut
   const handlePlayTrackByTitle = (bookTitle: string) => {
@@ -49,6 +54,36 @@ export default function App() {
     setCurrentPage('listen');
   };
 
+  // Read a specific book
+  const handleReadBook = (bookId: string) => {
+    setActiveReaderBookId(bookId);
+    setCurrentPage('reader');
+  };
+
+  // Logic for opening Reader from Menu
+  const handleOpenReaderFromMenu = async () => {
+    if (!isAuthenticated || !user) {
+      setCurrentPage('reader');
+      return;
+    }
+
+    try {
+      const readings = await BookService.getUserReadings(user.id);
+      if (readings.length > 0) {
+        // Find most recently updated (last read) or first one
+        const lastRead = [...readings].sort((a, b) => {
+          const dateA = new Date(a.updated_at || a.created_at).getTime();
+          const dateB = new Date(b.updated_at || b.created_at).getTime();
+          return dateB - dateA;
+        })[0];
+        setActiveReaderBookId(lastRead.book_id);
+      }
+    } catch (err) {
+      console.error("Error fetching readings for reader:", err);
+    }
+    setCurrentPage('reader');
+  };
+
   const renderActivePage = () => {
     switch (currentPage) {
       case 'home':
@@ -70,6 +105,7 @@ export default function App() {
         return (
           <LibraryPage
             onPlayTrack={handlePlayBook}
+            onReadBook={handleReadBook}
           />
         );
       case 'diary':
@@ -82,6 +118,13 @@ export default function App() {
             tracks={INITIAL_AUDIO_TRACKS}
             activeTrackId={activeTrackId}
             setActiveTrackId={setActiveTrackId}
+          />
+        );
+      case 'reader':
+        return (
+          <ReaderPage
+            bookId={activeReaderBookId}
+            onNavigateToLibrary={() => setCurrentPage('library')}
           />
         );
       case 'profile':
@@ -105,7 +148,13 @@ export default function App() {
     <div className="flex flex-col min-h-screen bg-surface selection:bg-primary-fixed/60 selection:text-primary">
       <Navbar 
         currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
+        setCurrentPage={(page) => {
+          if (page === 'reader') {
+            handleOpenReaderFromMenu();
+          } else {
+            setCurrentPage(page);
+          }
+        }}
       />
 
       <main className="flex-grow pt-8 pb-20 md:pb-8">

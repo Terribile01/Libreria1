@@ -21,6 +21,8 @@ export interface Reading {
   status: 'Da Leggere' | 'Letti' | 'Preferiti';
   note: string;
   created_at: string;
+  updated_at?: string;
+  last_page_read?: number;
   // New hybrid source fields
   source_type: 'internal' | 'external';
   file_path?: string;
@@ -162,7 +164,7 @@ export const BookService = {
   },
 
   // Update reading status, note or hybrid fields
-  updateReading: async (readingId: string, updates: Partial<Pick<Reading, 'status' | 'note' | 'source_type' | 'file_path' | 'external_url'>>) => {
+  updateReading: async (readingId: string, updates: Partial<Pick<Reading, 'status' | 'note' | 'source_type' | 'file_path' | 'external_url' | 'last_page_read'>>) => {
     const { data, error } = await supabase
       .from('readings')
       .update(updates)
@@ -309,8 +311,10 @@ export interface Bookmark {
   id: string;
   user_id: string;
   book_id: string;
-  time: number;
-  text: string;
+  time?: number; // For audio (position_seconds in DB)
+  page_number?: number; // For Reader
+  text: string; // Previously used as label or snippet
+  note?: string; // Optional longer note
   created_at: string;
   book?: Book;
 }
@@ -333,6 +337,7 @@ export const BookmarkService = {
     if (error) throw error;
     return (data || []).map((b: any) => ({
       ...b,
+      time: b.position_seconds, // Map position_seconds back to time for the UI
       book: b.book ? mapDbToBook(b.book) : undefined
     })) as Bookmark[];
   },
@@ -344,8 +349,10 @@ export const BookmarkService = {
       .insert([{
         user_id: bookmark.user_id,
         book_id: bookmark.book_id,
-        time: bookmark.time,
-        text: bookmark.text
+        position_seconds: bookmark.time,
+        page_number: bookmark.page_number,
+        text: bookmark.text,
+        note: bookmark.note
       }])
       .select()
       .maybeSingle();
