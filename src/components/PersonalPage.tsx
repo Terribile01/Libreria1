@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Lock, Shield, Key, Eye, EyeOff,
   CheckCircle2, AlertCircle, LogOut, Sparkles, Check,
-  Bookmark, Database, Copy, Heart
+  Bookmark, Database, Copy, Heart, X, Clock, ExternalLink, BookOpen
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ApiKeyManager, ApiKeyStructure } from '../utils/apiKeys';
@@ -39,6 +39,10 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
   const [authIsLoading, setAuthIsLoading] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
+  // Drawer State
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [drawerCategory, setDrawerCategory] = useState<string | null>(null);
+
   const [editUsername, setEditUsername] = useState('');
   const [profileMessage, setProfileMessage] = useState({ text: '', type: 'success' });
 
@@ -69,6 +73,18 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
     toRead: readings.filter(r => r.status === 'Da Leggere').length,
     notes: notes.length
   };
+
+  // Find "In Lettura" (most recent book added that's not marked as Letti)
+  const inReading = [...readings]
+    .filter(r => r.status !== 'Letti')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+  // Activities
+  const activities = [
+    ...readings.map(r => ({ type: 'reading', date: r.created_at, data: r })),
+    ...notes.map(n => ({ type: 'note', date: n.created_at, data: n }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+   .slice(0, 4);
 
   const [apiKeys, setApiKeys] = useState<ApiKeyStructure[]>(ApiKeyManager.listKeys());
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -155,6 +171,87 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
     setApiKeys(ApiKeyManager.listKeys());
   };
 
+  const renderDrawerContent = () => {
+    if (!drawerCategory) return null;
+
+    let items: any[] = [];
+    if (drawerCategory === 'Appunti') {
+      items = notes;
+    } else {
+      items = readings.filter(r => {
+        if (drawerCategory === 'Libri') return true;
+        return r.status === drawerCategory;
+      });
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <h2 className="font-serif text-2xl font-semibold flex items-center gap-2">
+            {drawerCategory === 'Libri' && <Bookmark className="w-6 h-6 text-primary" />}
+            {drawerCategory === 'Preferiti' && <Heart className="w-6 h-6 text-rose-500" />}
+            {drawerCategory === 'Letti' && <CheckCircle2 className="w-6 h-6 text-green-600" />}
+            {drawerCategory === 'Da Leggere' && <Sparkles className="w-6 h-6 text-amber-500" />}
+            {drawerCategory === 'Appunti' && <Database className="w-6 h-6 text-blue-500" />}
+            {drawerCategory}
+          </h2>
+          <button onClick={() => setIsDrawerOpen(false)} className="p-2 hover:bg-surface-container rounded-full transition-colors">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto pr-2 custom-scrollbar">
+          {items.length === 0 ? (
+            <p className="text-center py-10 text-on-surface-variant italic">Nessun elemento in questa categoria.</p>
+          ) : (
+            items.map((item) => (
+              <div key={item.id} className="bg-surface-container-lowest border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                {drawerCategory === 'Appunti' ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <h4 className="font-bold text-sm text-primary">{item.title}</h4>
+                      <span className="text-[10px] text-on-surface-variant flex items-center gap-1 whitespace-nowrap">
+                        <Clock className="w-3 h-3" /> {new Date(item.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-3">{item.content}</p>
+                    {item.book && (
+                      <div className="pt-2 border-t mt-2 flex items-center gap-2">
+                        <img src={item.book.coverUrl} className="w-6 h-8 object-cover rounded shadow-sm" alt="" />
+                        <span className="text-[10px] font-semibold italic text-secondary">Rif: {item.book.title}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex gap-4">
+                    <img src={item.book?.coverUrl} className="w-12 h-18 object-cover rounded shadow-sm flex-shrink-0" alt="" />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex justify-between items-start gap-2">
+                        <h4 className="font-bold text-sm truncate">{item.book?.title}</h4>
+                        <span className="text-[10px] text-on-surface-variant flex items-center gap-1 whitespace-nowrap">
+                          <Clock className="w-3 h-3" /> {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-secondary italic">di {item.book?.author}</p>
+                      <div className="pt-1 flex flex-wrap gap-2">
+                        <span className="text-[9px] px-1.5 py-0.5 bg-surface-container-high rounded-full font-mono text-on-surface-variant">ID: {item.book?.id.slice(0, 8)}...</span>
+                        {item.note && <span className="text-[9px] px-1.5 py-0.5 bg-primary/10 text-primary rounded-full font-semibold">Ha riflessioni</span>}
+                        {item.status && <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
+                          item.status === 'Letti' ? 'bg-green-100 text-green-700' :
+                          item.status === 'Preferiti' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                        }`}>{item.status}</span>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-surface-container/30 pb-6">
@@ -163,7 +260,7 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
             <Shield className="w-3.5 h-3.5" /> Area Personale Cloud
           </span>
           <h1 className="font-serif text-3xl md:text-4xl text-on-surface font-semibold tracking-tight text-center md:text-left mt-1">
-            Il Tuo Refettorio Digitale
+            La Tua Scrivania
           </h1>
         </div>
         <button onClick={onNavigateToHome} className="px-4 py-2 border rounded-xl text-xs uppercase font-bold cursor-pointer transition-all">← Torna alla Home</button>
@@ -244,40 +341,107 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
               <div className="space-y-6">
                 <h2 className="font-serif text-2xl font-semibold">Profilo Lettore Cloud</h2>
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
-                    <Bookmark className="w-5 h-5 text-primary mx-auto mb-1.5"/>
+                  <button
+                    onClick={() => { setDrawerCategory('Libri'); setIsDrawerOpen(true); }}
+                    className="bg-surface-container/40 p-4 border rounded-xl text-center hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer group"
+                  >
+                    <Bookmark className="w-5 h-5 text-primary mx-auto mb-1.5 group-hover:scale-110 transition-transform"/>
                     <strong className="text-xl block">{stats.total}</strong>
                     <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Libri</span>
-                  </div>
-                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
-                    <Heart className="w-5 h-5 text-rose-500 mx-auto mb-1.5"/>
+                  </button>
+                  <button
+                    onClick={() => { setDrawerCategory('Preferiti'); setIsDrawerOpen(true); }}
+                    className="bg-surface-container/40 p-4 border rounded-xl text-center hover:border-rose-500/50 hover:bg-rose-500/5 transition-all cursor-pointer group"
+                  >
+                    <Heart className="w-5 h-5 text-rose-500 mx-auto mb-1.5 group-hover:scale-110 transition-transform"/>
                     <strong className="text-xl block">{stats.favorites}</strong>
                     <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Preferiti</span>
-                  </div>
-                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 mx-auto mb-1.5"/>
+                  </button>
+                  <button
+                    onClick={() => { setDrawerCategory('Letti'); setIsDrawerOpen(true); }}
+                    className="bg-surface-container/40 p-4 border rounded-xl text-center hover:border-green-600/50 hover:bg-green-600/5 transition-all cursor-pointer group"
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-green-600 mx-auto mb-1.5 group-hover:scale-110 transition-transform"/>
                     <strong className="text-xl block">{stats.completed}</strong>
                     <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Letti</span>
-                  </div>
-                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
-                    <Sparkles className="w-5 h-5 text-amber-500 mx-auto mb-1.5"/>
+                  </button>
+                  <button
+                    onClick={() => { setDrawerCategory('Da Leggere'); setIsDrawerOpen(true); }}
+                    className="bg-surface-container/40 p-4 border rounded-xl text-center hover:border-amber-500/50 hover:bg-amber-500/5 transition-all cursor-pointer group"
+                  >
+                    <Sparkles className="w-5 h-5 text-amber-500 mx-auto mb-1.5 group-hover:scale-110 transition-transform"/>
                     <strong className="text-xl block">{stats.toRead}</strong>
                     <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Da Leggere</span>
-                  </div>
-                  <div className="bg-surface-container/40 p-4 border rounded-xl text-center">
-                    <Database className="w-5 h-5 text-blue-500 mx-auto mb-1.5"/>
+                  </button>
+                  <button
+                    onClick={() => { setDrawerCategory('Appunti'); setIsDrawerOpen(true); }}
+                    className="bg-surface-container/40 p-4 border rounded-xl text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group"
+                  >
+                    <Database className="w-5 h-5 text-blue-500 mx-auto mb-1.5 group-hover:scale-110 transition-transform"/>
                     <strong className="text-xl block">{stats.notes}</strong>
                     <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Appunti</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Widget In Lettura */}
+                  <div className="bg-surface-container/20 border rounded-2xl p-5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                      <BookOpen className="w-4 h-4" /> In Lettura
+                    </h3>
+                    {inReading ? (
+                      <div className="flex gap-4 items-center">
+                        <img src={inReading.book?.coverUrl} className="w-16 h-24 object-cover rounded-lg shadow-md" alt="" />
+                        <div className="space-y-1">
+                          <h4 className="font-serif text-lg font-bold leading-tight">{inReading.book?.title}</h4>
+                          <p className="text-xs text-secondary italic">di {inReading.book?.author}</p>
+                          <div className="pt-2">
+                            <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase">{inReading.status}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs italic text-on-surface-variant py-4">Nessun libro attualmente in lettura. Scegline uno dalla libreria!</p>
+                    )}
+                  </div>
+
+                  {/* Attività Recente */}
+                  <div className="bg-surface-container/20 border rounded-2xl p-5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Clock className="w-4 h-4" /> Attività Recente
+                    </h3>
+                    <div className="space-y-3">
+                      {activities.length > 0 ? activities.map((act, idx) => (
+                        <div key={idx} className="flex gap-3 items-start">
+                          <div className={`p-1.5 rounded-full mt-0.5 ${act.type === 'note' ? 'bg-blue-100 text-blue-600' : 'bg-primary/10 text-primary'}`}>
+                            {act.type === 'note' ? <Database className="w-3 h-3" /> : <Bookmark className="w-3 h-3" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] leading-tight text-on-surface">
+                              {act.type === 'note' ? (
+                                <>Aggiunta nota <strong>{(act.data as any).title}</strong></>
+                              ) : (
+                                <>Aggiunto <strong>{(act.data as any).book?.title}</strong> a {(act.data as any).status}</>
+                              )}
+                            </p>
+                            <span className="text-[9px] text-on-surface-variant">{new Date(act.date).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      )) : (
+                        <p className="text-xs italic text-on-surface-variant py-2">Ancora nessuna attività registrata.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
+
                 <form onSubmit={handleUpdateProfile} className="bg-surface p-5 border rounded-xl space-y-4">
-                  <h3 className="font-serif text-lg font-semibold border-b pb-2">Modifica Profilo</h3>
+                  <h3 className="font-serif text-lg font-semibold border-b pb-2">Impostazioni Profilo</h3>
                   <div className="grid grid-cols-1 gap-4">
                     <label className="text-xs font-bold uppercase">Nome Utente</label>
                     <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} className="w-full px-3.5 py-2 border rounded-lg text-xs" />
                   </div>
                   {profileMessage.text && <div className={`p-2 text-xs rounded-lg ${profileMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{profileMessage.text}</div>}
-                  <button type="submit" className="px-4 py-2 bg-primary text-white text-xs font-bold uppercase rounded-xl">Salva</button>
+                  <button type="submit" className="px-4 py-2 bg-primary text-white text-xs font-bold uppercase rounded-xl">Aggiorna</button>
                 </form>
               </div>
             )}
@@ -424,6 +588,30 @@ USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid(
           </div>
         </div>
       )}
+
+      {/* Side Drawer */}
+      <AnimatePresence>
+        {isDrawerOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDrawerOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-surface shadow-2xl z-[70] p-6 border-l"
+            >
+              {renderDrawerContent()}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
