@@ -13,7 +13,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { id: 'home', label: 'Home', icon: BookOpen },
+    { id: 'home', label: 'Home', icon: Home },
     { id: 'search', label: 'Ricerca', icon: Search },
     { id: 'library', label: 'La Mia Libreria', icon: Library },
     { id: 'reader', label: 'Leggi', icon: BookOpen },
@@ -137,62 +137,60 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={toggleMenu}
-              className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-[60]"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
             />
 
             {/* Drawer */}
             <motion.div
-              initial={{ x: '100%', rotateY: 15 }}
-              animate={{ x: 0, rotateY: 0 }}
-              exit={{ x: '100%', rotateY: 15 }}
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="md:hidden fixed top-0 right-0 bottom-0 w-[85%] bg-surface z-[70] shadow-[-20px_0_50px_rgba(0,0,0,0.1)] flex flex-col origin-right overflow-hidden"
-              style={{ perspective: '1000px' }}
+              className="fixed inset-y-0 right-0 w-[85%] max-w-sm bg-white z-[70] shadow-[-20px_0_50px_rgba(0,0,0,0.2)] flex flex-col md:hidden"
+              style={{ height: '100dvh' }}
             >
-              {/* Chromatic Wow Effect - Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-secondary/5 to-surface pointer-events-none" />
-              <div className="absolute -top-20 -left-20 w-60 h-60 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="p-6 flex justify-between items-center relative z-10 border-b border-surface-container/30">
+              <div className="p-6 flex justify-between items-center border-b border-surface-container/50 bg-white shrink-0">
                 <span className="font-serif text-2xl text-primary font-bold tracking-wider">Menu</span>
-                <button onClick={toggleMenu} className="p-2 text-primary hover:bg-primary/5 rounded-full transition-all">
+                <button
+                  onClick={toggleMenu}
+                  className="p-2 text-primary hover:bg-primary/5 rounded-full transition-all"
+                  aria-label="Chiudi menu"
+                >
                   <X className="w-8 h-8" />
                 </button>
               </div>
 
-              <div className="flex-1 py-8 px-6 space-y-8 relative z-10 overflow-y-auto">
-                {navItems.map((item, index) => {
+              <div className="flex-1 py-8 px-6 space-y-4 overflow-y-auto bg-[#fdfcfb] custom-scrollbar">
+                {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = currentPage === item.id;
 
                   return (
-                    <motion.button
+                    <button
                       key={item.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
                       onClick={() => {
                         setCurrentPage(item.id);
                         toggleMenu();
                       }}
-                      className={`w-full flex items-center gap-5 p-4 rounded-2xl transition-all ${
+                      className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group ${
                         isActive
-                          ? 'bg-primary/10 text-primary shadow-[0_10px_25px_rgba(var(--primary-rgb),0.1)] border border-primary/20'
-                          : 'text-on-surface-variant hover:bg-surface-container/50'
+                          ? 'bg-primary text-white shadow-xl scale-[1.02]'
+                          : 'text-on-surface-variant bg-white border border-surface-container/30 hover:border-primary/30 hover:bg-primary/5'
                       }`}
                     >
-                      <Icon className={`w-7 h-7 ${isActive ? 'text-primary' : 'text-on-surface-variant/70'}`} />
-                      <span className={`font-serif text-xl tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>
+                      <div className={`p-2.5 rounded-xl transition-colors ${isActive ? 'bg-white/20' : 'bg-primary/10 text-primary group-hover:bg-primary/20'}`}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <span className={`font-serif text-lg tracking-wide text-left flex-1 ${isActive ? 'font-bold' : 'font-semibold'}`}>
                         {item.label}
                       </span>
-                    </motion.button>
+                    </button>
                   );
                 })}
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-8 relative z-10 border-t border-surface-container/30 bg-surface-container/10">
+              <div className="p-8 border-t border-surface-container/30 bg-white shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20">
                     <img
