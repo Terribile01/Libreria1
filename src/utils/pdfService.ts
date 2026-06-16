@@ -1,7 +1,7 @@
 import * as pdfjs from 'pdfjs-dist';
 
-// Imposta il worker per pdfjs
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Imposta il worker per pdfjs usando un CDN affidabile e l'estensione .mjs richiesta dalle nuove versioni
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export const PdfService = {
   /**
