@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, ListMusic, Headphones, Square, Settings, Loader2, Bookmark as BookmarkIcon, Trash2, Clock, Sparkles } from 'lucide-react';
 import { AudioTrack } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { BookService, Reading } from '../utils/database';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { BookService, Reading, BookmarkService } from '../utils/database';
 import { PdfService } from '../utils/pdfService';
 
 interface ListenPageProps {
@@ -15,6 +15,7 @@ interface ListenPageProps {
 
 export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: ListenPageProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -36,36 +37,39 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
 
-  // Bookmarks state
-  const [bookmarks, setBookmarks] = useState<Record<string, { time: number, text: string, date: string }[]>>(() => {
-    const saved = localStorage.getItem('ru_bookmarks');
-    return saved ? JSON.parse(saved) : {};
+  // Fetch bookmarks from DB
+  const { data: dbBookmarks = [] } = useQuery({
+    queryKey: ['bookmarks', user?.id],
+    queryFn: () => BookmarkService.getUserBookmarks(user!.id),
+    enabled: !!user,
   });
 
-  useEffect(() => {
-    localStorage.setItem('ru_bookmarks', JSON.stringify(bookmarks));
-  }, [bookmarks]);
+  const addBookmarkMutation = useMutation({
+    mutationFn: (newBookmark: any) => BookmarkService.addBookmark(newBookmark),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookmarks'] }),
+  });
+
+  const removeBookmarkMutation = useMutation({
+    mutationFn: (id: string) => BookmarkService.removeBookmark(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookmarks'] }),
+  });
+
+  const activeTrackBookmarks = dbBookmarks.filter(b => b.book_id === activeTrackId);
 
   const addBookmark = () => {
-    if (!activeTrack) return;
+    if (!activeTrack || !user) return;
     const currentTranscriptLine = activeTrack.transcript[activeTranscriptIndex]?.text || "";
-    const newBookmark = {
-      time: currentTime,
-      text: currentTranscriptLine.substring(0, 60) + "...",
-      date: new Date().toLocaleString()
-    };
 
-    setBookmarks(prev => ({
-      ...prev,
-      [activeTrackId]: [newBookmark, ...(prev[activeTrackId] || [])].slice(0, 10) // Keep last 10
-    }));
+    addBookmarkMutation.mutate({
+      user_id: user.id,
+      book_id: activeTrackId,
+      time: currentTime,
+      text: currentTranscriptLine.substring(0, 80) + "..."
+    });
   };
 
-  const removeBookmark = (idx: number) => {
-    setBookmarks(prev => ({
-      ...prev,
-      [activeTrackId]: prev[activeTrackId].filter((_, i) => i !== idx)
-    }));
+  const removeBookmark = (id: string) => {
+    removeBookmarkMutation.mutate(id);
   };
 
   // Find currently active reading (from Supabase)
@@ -393,19 +397,19 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
               <BookmarkIcon className="w-4 h-4" /> Segnalibri
             </h4>
             <div className="space-y-2 pt-3 max-h-40 overflow-y-auto no-scrollbar">
-              {bookmarks[activeTrackId]?.length > 0 ? (
-                bookmarks[activeTrackId].map((bm, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-50/50 border border-amber-100 group">
+              {activeTrackBookmarks.length > 0 ? (
+                activeTrackBookmarks.map((bm) => (
+                  <div key={bm.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-50/50 border border-amber-100 group">
                     <button
                       onClick={() => { handleStop(); setCurrentTime(bm.time); handlePlay(); }}
                       className="flex-1 text-left"
                     >
                       <p className="text-[10px] font-bold text-amber-800 truncate">{bm.text}</p>
                       <div className="flex items-center gap-2 text-[8px] text-amber-600/70">
-                        <Clock className="w-2.5 h-2.5" /> {formatTime(bm.time)} • {bm.date.split(',')[0]}
+                        <Clock className="w-2.5 h-2.5" /> {formatTime(bm.time)} • {new Date(bm.created_at).toLocaleDateString()}
                       </div>
                     </button>
-                    <button onClick={() => removeBookmark(i)} className="p-1 text-amber-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">
+                    <button onClick={() => removeBookmark(bm.id)} className="p-1 text-amber-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">
                       <Trash2 className="w-3 h-3" />
                     </button>
                   </div>

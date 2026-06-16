@@ -3,18 +3,21 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Lock, Shield, Key, Eye, EyeOff,
   CheckCircle2, AlertCircle, LogOut, Sparkles, Check,
-  Bookmark, Database, Copy, Heart, X, Clock, ExternalLink, BookOpen
+  Bookmark, Database, Copy, Heart, X, Clock, ExternalLink, BookOpen, Headphones, RotateCw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ApiKeyManager, ApiKeyStructure } from '../utils/apiKeys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookService, DiaryService } from '../utils/database';
+import { BookService, DiaryService, BookmarkService } from '../utils/database';
 
 interface PersonalPageProps {
   onNavigateToHome: () => void;
+  onNavigateToListen: (bookId: string) => void;
+  onNavigateToLibrary: () => void;
+  onNavigateToDiary: () => void;
 }
 
-export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
+export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onNavigateToLibrary, onNavigateToDiary }: PersonalPageProps) {
   const { 
     user: currentUser,
     profile,
@@ -43,6 +46,10 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerCategory, setDrawerCategory] = useState<string | null>(null);
 
+  // Modal Detail State
+  const [selectedDetailItem, setSelectedDetailItem] = useState<any | null>(null);
+  const [detailType, setDetailType] = useState<'book' | 'note' | 'bookmark' | null>(null);
+
   const [editUsername, setEditUsername] = useState('');
   const [profileMessage, setProfileMessage] = useState({ text: '', type: 'success' });
 
@@ -66,12 +73,19 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
     enabled: !!currentUser,
   });
 
+  const { data: dbBookmarks = [] } = useQuery({
+    queryKey: ['bookmarks', currentUser?.id],
+    queryFn: () => BookmarkService.getUserBookmarks(currentUser!.id),
+    enabled: !!currentUser,
+  });
+
   const stats = {
     total: readings.length,
     favorites: readings.filter(r => r.status === 'Preferiti').length,
     completed: readings.filter(r => r.status === 'Letti').length,
     toRead: readings.filter(r => r.status === 'Da Leggere').length,
-    notes: notes.length
+    notes: notes.length,
+    bookmarks: dbBookmarks.length
   };
 
   // Find "In Lettura" (most recent book added that's not marked as Letti)
@@ -177,6 +191,8 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
     let items: any[] = [];
     if (drawerCategory === 'Appunti') {
       items = notes;
+    } else if (drawerCategory === 'Segnalibri') {
+      items = dbBookmarks;
     } else {
       items = readings.filter(r => {
         if (drawerCategory === 'Libri') return true;
@@ -193,6 +209,7 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
             {drawerCategory === 'Letti' && <CheckCircle2 className="w-6 h-6 text-green-600" />}
             {drawerCategory === 'Da Leggere' && <Sparkles className="w-6 h-6 text-amber-500" />}
             {drawerCategory === 'Appunti' && <Database className="w-6 h-6 text-blue-500" />}
+            {drawerCategory === 'Segnalibri' && <Bookmark className="w-6 h-6 text-amber-600" />}
             {drawerCategory}
           </h2>
           <button onClick={() => setIsDrawerOpen(false)} className="p-2 hover:bg-surface-container rounded-full transition-colors">
@@ -205,7 +222,14 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
             <p className="text-center py-10 text-on-surface-variant italic">Nessun elemento in questa categoria.</p>
           ) : (
             items.map((item) => (
-              <div key={item.id} className="bg-surface-container-lowest border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div
+                key={item.id}
+                onClick={() => {
+                  setSelectedDetailItem(item);
+                  setDetailType(drawerCategory === 'Appunti' ? 'note' : (drawerCategory === 'Segnalibri' ? 'bookmark' : 'book'));
+                }}
+                className="bg-surface-container-lowest border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+              >
                 {drawerCategory === 'Appunti' ? (
                   <div className="space-y-2">
                     <div className="flex justify-between items-start gap-2">
@@ -222,6 +246,20 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
                       </div>
                     )}
                   </div>
+                ) : drawerCategory === 'Segnalibri' ? (
+                   <div className="space-y-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="text-xs font-bold text-amber-800 line-clamp-2">{item.text}</p>
+                        <span className="text-[10px] text-on-surface-variant flex items-center gap-1 whitespace-nowrap">
+                          <Clock className="w-3 h-3" /> {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <img src={item.book?.coverUrl} className="w-6 h-8 object-cover rounded shadow-sm" alt="" />
+                         <span className="text-[9px] font-semibold italic text-secondary">{item.book?.title}</span>
+                         <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold ml-auto">{Math.floor(item.time / 60)}:{(item.time % 60).toString().padStart(2, '0')}</span>
+                      </div>
+                   </div>
                 ) : (
                   <div className="flex gap-4">
                     <img src={item.book?.coverUrl} className="w-12 h-18 object-cover rounded shadow-sm flex-shrink-0" alt="" />
@@ -248,6 +286,87 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
             ))
           )}
         </div>
+      </div>
+    );
+  };
+
+  const renderDetailModal = () => {
+    if (!selectedDetailItem || !detailType) return null;
+
+    const item = selectedDetailItem;
+    const book = detailType === 'book' ? item.book : (detailType === 'bookmark' ? item.book : item.book);
+
+    return (
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-surface max-w-xl w-full rounded-2xl overflow-hidden shadow-2xl border"
+        >
+          <div className="p-6 md:p-8 space-y-6">
+            <div className="flex justify-between items-start">
+              <div className="flex gap-4">
+                {book && <img src={book.coverUrl} className="w-20 h-28 object-cover rounded-lg shadow-md" alt="" />}
+                <div className="space-y-1">
+                  <h3 className="font-serif text-xl font-bold">{detailType === 'note' ? item.title : (detailType === 'bookmark' ? 'Segnalibro' : book?.title)}</h3>
+                  <p className="text-sm text-secondary italic">
+                    {detailType === 'note' ? (book ? `Rif: ${book.title}` : 'Nota Generale') : (detailType === 'bookmark' ? `Rif: ${book?.title}` : `di ${book?.author}`)}
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[10px] px-2 py-0.5 bg-surface-container rounded-full font-bold uppercase tracking-widest text-on-surface-variant">
+                      {detailType === 'book' ? item.status : detailType}
+                    </span>
+                    <span className="text-[10px] text-on-surface-variant flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {new Date(item.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => { setSelectedDetailItem(null); setDetailType(null); }} className="p-2 hover:bg-surface-container rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-surface-container-low/40 p-5 rounded-xl border-l-4 border-primary">
+                <p className="text-sm leading-relaxed text-on-surface whitespace-pre-wrap italic">
+                  {detailType === 'note' ? item.content : (detailType === 'bookmark' ? `«${item.text}»` : book?.description)}
+                </p>
+              </div>
+
+              {detailType === 'bookmark' && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-lg border border-amber-100">
+                  <Bookmark className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-bold text-amber-800">Punto di sintonizzazione: {Math.floor(item.time / 60)}:{(item.time % 60).toString().padStart(2, '0')}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-6 border-t flex flex-wrap gap-3">
+              {detailType === 'book' && (
+                <>
+                  <button onClick={() => { onNavigateToLibrary(); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                    <Bookmark className="w-4 h-4" /> Leggi
+                  </button>
+                  <button onClick={() => { onNavigateToListen(book.id); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 border border-secondary text-secondary rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                    <Headphones className="w-4 h-4" /> Ascolta
+                  </button>
+                </>
+              )}
+              {detailType === 'note' && (
+                <button onClick={() => { onNavigateToDiary(); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                  <Database className="w-4 h-4" /> Gestisci in Diario
+                </button>
+              )}
+              {detailType === 'bookmark' && (
+                <button onClick={() => { onNavigateToListen(book.id); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                  <RotateCw className="w-4 h-4" /> Riprendi Ascolto
+                </button>
+              )}
+              <button onClick={() => { setSelectedDetailItem(null); setDetailType(null); }} className="px-6 py-2.5 border rounded-xl text-xs font-bold uppercase">Chiudi</button>
+            </div>
+          </div>
+        </motion.div>
       </div>
     );
   };
@@ -380,6 +499,14 @@ export default function PersonalPage({ onNavigateToHome }: PersonalPageProps) {
                     <Database className="w-5 h-5 text-blue-500 mx-auto mb-1.5 group-hover:scale-110 transition-transform"/>
                     <strong className="text-xl block">{stats.notes}</strong>
                     <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Appunti</span>
+                  </button>
+                  <button
+                    onClick={() => { setDrawerCategory('Segnalibri'); setIsDrawerOpen(true); }}
+                    className="bg-surface-container/40 p-4 border rounded-xl text-center hover:border-amber-600/50 hover:bg-amber-600/5 transition-all cursor-pointer group"
+                  >
+                    <Bookmark className="w-5 h-5 text-amber-600 mx-auto mb-1.5 group-hover:scale-110 transition-transform"/>
+                    <strong className="text-xl block">{stats.bookmarks}</strong>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Segnalibri</span>
                   </button>
                 </div>
 
@@ -534,7 +661,21 @@ WITH CHECK (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth
 -- Permetti eliminazione dei propri file
 CREATE POLICY "Cancellazione file personali" ON storage.objects
 FOR DELETE TO authenticated
-USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);`}
+USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 4. TABELLA BOOKMARKS (SEGNALIBRI)
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  book_id UUID REFERENCES books ON DELETE CASCADE NOT NULL,
+  time FLOAT NOT NULL,
+  text TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Utente gestisce i propri segnalibri" ON bookmarks FOR ALL USING (auth.uid() = user_id);
+GRANT ALL ON TABLE bookmarks TO authenticated;`}
                     </pre>
                     <button
                       onClick={() => {
@@ -588,6 +729,11 @@ USING (bucket_id = 'library-files' AND (storage.foldername(name))[1] = auth.uid(
           </div>
         </div>
       )}
+
+      {/* Detail Modal */}
+      <AnimatePresence>
+        {selectedDetailItem && renderDetailModal()}
+      </AnimatePresence>
 
       {/* Side Drawer */}
       <AnimatePresence>

@@ -304,3 +304,63 @@ export const DiaryService = {
     if (error) throw error;
   }
 };
+
+export interface Bookmark {
+  id: string;
+  user_id: string;
+  book_id: string;
+  time: number;
+  text: string;
+  created_at: string;
+  book?: Book;
+}
+
+export const BookmarkService = {
+  // Get all bookmarks for a user, optionally filtered by book
+  getUserBookmarks: async (userId: string, bookId?: string) => {
+    let query = supabase
+      .from('bookmarks')
+      .select(`
+        *,
+        book:books(*)
+      `)
+      .eq('user_id', userId);
+
+    if (bookId) query = query.eq('book_id', bookId);
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map((b: any) => ({
+      ...b,
+      book: b.book ? mapDbToBook(b.book) : undefined
+    })) as Bookmark[];
+  },
+
+  // Add a bookmark
+  addBookmark: async (bookmark: Omit<Bookmark, 'id' | 'created_at'>) => {
+    const { data, error } = await supabase
+      .from('bookmarks')
+      .insert([{
+        user_id: bookmark.user_id,
+        book_id: bookmark.book_id,
+        time: bookmark.time,
+        text: bookmark.text
+      }])
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+    return data as Bookmark;
+  },
+
+  // Remove a bookmark
+  removeBookmark: async (bookmarkId: string) => {
+    const { error } = await supabase
+      .from('bookmarks')
+      .delete()
+      .eq('id', bookmarkId);
+
+    if (error) throw error;
+  }
+};

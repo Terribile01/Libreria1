@@ -88,6 +88,12 @@ export default function App() {
         return (
           <PersonalPage 
             onNavigateToHome={() => setCurrentPage('home')}
+            onNavigateToListen={(bookId) => {
+              setActiveTrackId(bookId);
+              setCurrentPage('listen');
+            }}
+            onNavigateToLibrary={() => setCurrentPage('library')}
+            onNavigateToDiary={() => setCurrentPage('diary')}
           />
         );
       default:
