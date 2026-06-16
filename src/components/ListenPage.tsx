@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, ListMusic, Headphones, Square, Settings, Loader2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, ListMusic, Headphones, Square, Settings, Loader2, Bookmark as BookmarkIcon, Trash2, Clock, Sparkles } from 'lucide-react';
 import { AudioTrack } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -19,7 +19,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [rate, setRate] = useState(1);
+  const [rate, setRate] = useState(1.2);
   const [isMuted, setIsMuted] = useState(false);
 
   // Web Speech API state
@@ -35,6 +35,38 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
 
   const [extractedText, setExtractedText] = useState<string | null>(null);
   const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+
+  // Bookmarks state
+  const [bookmarks, setBookmarks] = useState<Record<string, { time: number, text: string, date: string }[]>>(() => {
+    const saved = localStorage.getItem('ru_bookmarks');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ru_bookmarks', JSON.stringify(bookmarks));
+  }, [bookmarks]);
+
+  const addBookmark = () => {
+    if (!activeTrack) return;
+    const currentTranscriptLine = activeTrack.transcript[activeTranscriptIndex]?.text || "";
+    const newBookmark = {
+      time: currentTime,
+      text: currentTranscriptLine.substring(0, 60) + "...",
+      date: new Date().toLocaleString()
+    };
+
+    setBookmarks(prev => ({
+      ...prev,
+      [activeTrackId]: [newBookmark, ...(prev[activeTrackId] || [])].slice(0, 10) // Keep last 10
+    }));
+  };
+
+  const removeBookmark = (idx: number) => {
+    setBookmarks(prev => ({
+      ...prev,
+      [activeTrackId]: prev[activeTrackId].filter((_, i) => i !== idx)
+    }));
+  };
 
   // Find currently active reading (from Supabase)
   const currentReading = readings.find(r => r.book_id === activeTrackId || r.id === activeTrackId);
@@ -108,8 +140,15 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
-      const itaVoice = availableVoices.find(v => v.lang.startsWith('it'));
-      if (itaVoice) setSelectedVoice(itaVoice.name);
+
+      // Default to a good Italian female voice if available, otherwise just the first one
+      const preferred = availableVoices.find(v =>
+        v.lang.startsWith('it') &&
+        (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural')) &&
+        (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('alice'))
+      ) || availableVoices.find(v => v.lang.startsWith('it')) || availableVoices[0];
+
+      if (preferred) setSelectedVoice(preferred.name);
     };
 
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -140,7 +179,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
     if (voice) utterance.voice = voice;
     utterance.volume = isMuted ? 0 : volume;
     utterance.rate = rate;
-    utterance.lang = 'it-IT';
+    if (voice) utterance.lang = voice.lang;
 
     utterance.onboundary = (event) => {
       if (event.name === 'word') {
@@ -206,6 +245,17 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
         </p>
       </div>
 
+      {/* Guida all'ascolto */}
+      <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-center">
+        <div className="p-3 bg-white rounded-xl shadow-sm"><Sparkles className="w-6 h-6 text-primary" /></div>
+        <div className="flex-1 space-y-2">
+          <h4 className="font-serif text-lg font-bold text-primary">Guida alla Sintonizzazione</h4>
+          <p className="text-xs text-on-surface-variant leading-relaxed">
+            Per un'esperienza ottimale, puoi personalizzare ogni dettaglio: usa il menu **Lingua** per adattare la voce al testo (es. seleziona voci Inglesi per testi originali), regola la **Velocità** (consigliato 1.2x per un ritmo fluido) e scegli il **Sesso della Voce** tra quelle installate sul tuo sistema. Usa i **Segnalibri** per custodire i passaggi che più ti colpiscono.
+          </p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
 
         {/* Core Player Area */}
@@ -245,8 +295,12 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
                   <div className="flex flex-wrap justify-center sm:justify-start gap-3 pt-1">
                     <div className="flex items-center gap-1 text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
                       <Settings className="w-3 h-3" />
-                      <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} className="bg-transparent border-none outline-none">
-                        {voices.filter(v => v.lang.startsWith('it')).map(v => <option key={v.name} value={v.name}>{v.name}</option>)}
+                      <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} className="bg-transparent border-none outline-none max-w-[120px]">
+                        {voices.map(v => (
+                          <option key={v.name} value={v.name}>
+                            [{v.lang.split('-')[0].toUpperCase()}] {v.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div className="flex items-center gap-1 text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest">
@@ -277,15 +331,23 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
 
               {/* Controls */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-4 border-t border-surface-container/40">
-                <div className="flex items-center gap-6">
-                  <button onClick={handleStop} className="p-2.5 text-on-surface-variant/40 hover:text-rose-500 transition-all cursor-pointer">
+                <div className="flex items-center gap-4">
+                  <button onClick={handleStop} title="Stop" className="p-2.5 text-on-surface-variant/40 hover:text-rose-500 transition-all cursor-pointer">
                     <Square className="w-6 h-6 fill-current" />
                   </button>
                   <button
                     onClick={isPlaying ? handlePause : handlePlay}
+                    title={isPlaying ? "Pausa" : "Riproduci"}
                     className="p-4 bg-primary text-white rounded-full shadow-md flex items-center justify-center transform active:scale-95 transition-all cursor-pointer"
                   >
                     {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current translate-x-[1.5px]" />}
+                  </button>
+                  <button
+                    onClick={addBookmark}
+                    title="Aggiungi Segnalibro"
+                    className="p-2.5 text-on-surface-variant/40 hover:text-amber-500 transition-all cursor-pointer"
+                  >
+                    <BookmarkIcon className="w-6 h-6" />
                   </button>
                 </div>
 
@@ -323,6 +385,34 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-surface-container-high/45 shadow-sm">
+            <h4 className="font-serif text-base text-on-surface font-semibold pb-4 border-b border-surface-container/50 flex items-center gap-2 text-amber-600">
+              <BookmarkIcon className="w-4 h-4" /> Segnalibri
+            </h4>
+            <div className="space-y-2 pt-3 max-h-40 overflow-y-auto no-scrollbar">
+              {bookmarks[activeTrackId]?.length > 0 ? (
+                bookmarks[activeTrackId].map((bm, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-amber-50/50 border border-amber-100 group">
+                    <button
+                      onClick={() => { handleStop(); setCurrentTime(bm.time); handlePlay(); }}
+                      className="flex-1 text-left"
+                    >
+                      <p className="text-[10px] font-bold text-amber-800 truncate">{bm.text}</p>
+                      <div className="flex items-center gap-2 text-[8px] text-amber-600/70">
+                        <Clock className="w-2.5 h-2.5" /> {formatTime(bm.time)} • {bm.date.split(',')[0]}
+                      </div>
+                    </button>
+                    <button onClick={() => removeBookmark(i)} className="p-1 text-amber-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[10px] text-on-surface-variant/40 italic px-2 py-4 text-center">Nessun segnalibro per questo volume.</p>
+              )}
             </div>
           </div>
 
