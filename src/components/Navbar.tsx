@@ -13,7 +13,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
     { id: 'home', label: 'Home', icon: BookOpen },
     { id: 'search', label: 'Ricerca', icon: Search },
     { id: 'library', label: 'La Mia Libreria', icon: Library },
-    { id: 'diary', label: 'Diario', icon: FileText },
+    { id: 'diary', label: 'Note', icon: FileText },
     { id: 'listen', label: 'Ascolta', icon: Headset },
   ] as const;
 

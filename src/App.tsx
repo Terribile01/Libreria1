@@ -5,7 +5,7 @@ import Footer from './components/Footer';
 import HomePage from './components/HomePage';
 import SearchPage from './components/SearchPage';
 import LibraryPage from './components/LibraryPage';
-import DiaryPage from './components/DiaryPage';
+import NotesPage from './components/NotesPage';
 import ListenPage from './components/ListenPage';
 import PersonalPage from './components/PersonalPage';
 import RuChat from './components/RuChat';
@@ -74,7 +74,7 @@ export default function App() {
         );
       case 'diary':
         return (
-          <DiaryPage />
+          <NotesPage />
         );
       case 'listen':
         return (

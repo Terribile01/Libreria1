@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Plus, X, Edit3, Loader2 } from 'lucide-react';
+import { FileText, Plus, X, Edit3, Loader2, Volume2, Square, Mic, MicOff, Trash2 } from 'lucide-react';
 import { DiaryService, DiaryNote, BookService } from '../utils/database';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-export default function DiaryPage() {
+export default function NotesPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
-  // New Note form state
+  // Form state
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteBookId, setNoteBookId] = useState<string>('');
+
+  // Audio/Voice state
+  const [isSpeaking, setIsSpeaking] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = React.useRef<any>(null);
 
   // Fetch data
   const { data: notes = [], isLoading: isLoadingNotes } = useQuery({
@@ -34,10 +40,16 @@ export default function DiaryPage() {
       DiaryService.addNote(newNote),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notes'] });
-      setIsAddingNote(false);
-      setNoteTitle('');
-      setNoteContent('');
-      setNoteBookId('');
+      closeModal();
+    },
+  });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string, updates: Partial<DiaryNote> }) =>
+      DiaryService.updateNote(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      closeModal();
     },
   });
 
@@ -49,27 +61,109 @@ export default function DiaryPage() {
   const handleSaveNote = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !noteTitle.trim() || !noteContent.trim()) return;
-    addNoteMutation.mutate({
-      user_id: user.id,
-      title: noteTitle,
-      content: noteContent,
-      book_id: noteBookId && noteBookId.trim() !== '' ? noteBookId : undefined
-    });
+
+    if (editingNoteId) {
+      updateNoteMutation.mutate({
+        id: editingNoteId,
+        updates: {
+          title: noteTitle,
+          content: noteContent,
+          book_id: noteBookId && noteBookId.trim() !== '' ? noteBookId : undefined
+        }
+      });
+    } else {
+      addNoteMutation.mutate({
+        user_id: user.id,
+        title: noteTitle,
+        content: noteContent,
+        book_id: noteBookId && noteBookId.trim() !== '' ? noteBookId : undefined
+      });
+    }
+  };
+
+  const openEditModal = (note: DiaryNote) => {
+    setEditingNoteId(note.id);
+    setNoteTitle(note.title);
+    setNoteContent(note.content);
+    setNoteBookId(note.book_id || '');
+    setIsAddingNote(true);
+  };
+
+  const closeModal = () => {
+    setIsAddingNote(false);
+    setEditingNoteId(null);
+    setNoteTitle('');
+    setNoteContent('');
+    setNoteBookId('');
+    if (isListening) stopListening();
   };
 
   if (!user) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <h2 className="font-serif text-2xl text-on-surface">Accedi per visualizzare il tuo diario</h2>
+        <h2 className="font-serif text-2xl text-on-surface">Accedi per visualizzare le tue note</h2>
       </div>
     );
   }
+
+  // Speech Synthesis
+  const speak = (text: string, id: string) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.2;
+    utterance.onstart = () => setIsSpeaking(id);
+    utterance.onend = () => setIsSpeaking(null);
+    utterance.onerror = () => setIsSpeaking(null);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(null);
+  };
+
+  // Speech Recognition
+  React.useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition && !recognitionRef.current) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'it-IT';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        setNoteContent(prev => prev + (prev.length > 0 ? ' ' : '') + transcript);
+      };
+
+      recognitionRef.current.onerror = () => setIsListening(false);
+      recognitionRef.current.onend = () => setIsListening(false);
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error("STT Error", err);
+      }
+    }
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  };
 
   if (isLoadingNotes) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-primary">
         <Loader2 className="w-10 h-10 animate-spin mb-4" />
-        <p className="font-serif italic">Sfogliando le pagine del tuo diario...</p>
+        <p className="font-serif italic">Sfogliando le tue note...</p>
       </div>
     );
   }
@@ -85,7 +179,7 @@ export default function DiaryPage() {
       <div className="flex justify-between items-center px-1">
         <div className="space-y-1">
           <h1 className="font-serif text-3xl md:text-4xl text-on-surface font-semibold flex items-center gap-3">
-            <FileText className="w-8 h-8 text-primary" /> Diario del Santuario
+            <FileText className="w-8 h-8 text-primary" /> Note del Santuario
           </h1>
           <p className="font-sans text-sm text-on-surface-variant/70">Il luogo dove i tuoi pensieri prendono forma tra le pagine.</p>
         </div>
@@ -108,12 +202,32 @@ export default function DiaryPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-[#fcfaf2] rounded-2xl p-8 shadow-lg border-l-[8px] border-secondary border border-surface-container-high/60 relative overflow-hidden book-shadow"
             >
-              <button
-                onClick={() => { if (confirm('Eliminare questo appunto?')) removeNoteMutation.mutate(note.id); }}
-                className="absolute top-6 right-6 text-on-surface-variant/40 hover:text-rose-500 cursor-pointer transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="absolute top-6 right-6 flex items-center gap-2">
+                <button
+                   onClick={() => speak(note.content, note.id)}
+                   className={`p-2 rounded-full transition-colors cursor-pointer ${isSpeaking === note.id ? 'text-primary bg-primary/10' : 'text-on-surface-variant/40 hover:text-primary'}`}
+                   title="Ascolta"
+                >
+                  <Volume2 className="w-5 h-5" />
+                </button>
+                {isSpeaking === note.id && (
+                  <button onClick={stopSpeaking} className="p-2 text-rose-500 hover:bg-rose-50 cursor-pointer rounded-full" title="Stop"><Square className="w-4 h-4 fill-current" /></button>
+                )}
+                <button
+                  onClick={() => openEditModal(note)}
+                  className="p-2 text-on-surface-variant/40 hover:text-secondary cursor-pointer transition-colors"
+                  title="Modifica"
+                >
+                  <Edit3 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => { if (confirm('Eliminare questo appunto?')) removeNoteMutation.mutate(note.id); }}
+                  className="p-2 text-on-surface-variant/40 hover:text-rose-500 cursor-pointer transition-colors"
+                  title="Elimina"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
               <div className="pt-2 space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-[11px] font-sans font-bold text-secondary tracking-widest uppercase">
@@ -150,11 +264,11 @@ export default function DiaryPage() {
               exit={{ scale: 0.96, opacity: 0 }}
               className="bg-[#fbf9f6] max-w-2xl w-full rounded-2xl p-6 md:p-10 border border-surface-container-high relative shadow-2xl"
             >
-              <button onClick={() => setIsAddingNote(false)} className="absolute top-6 right-6 p-2 text-on-surface-variant/50 hover:text-on-surface"><X className="w-6 h-6" /></button>
+              <button onClick={closeModal} className="absolute top-6 right-6 p-2 text-on-surface-variant/50 hover:text-on-surface"><X className="w-6 h-6" /></button>
               <div className="space-y-8">
                 <div className="space-y-2">
                   <h3 className="font-serif text-3xl text-on-surface font-semibold flex items-center gap-2">
-                    <Edit3 className="w-7 h-7 text-secondary" /> Sottoscrivi Appunto
+                    <Edit3 className="w-7 h-7 text-secondary" /> {editingNoteId ? 'Aggiorna Nota' : 'Sottoscrivi Nota'}
                   </h3>
                   <p className="text-sm text-on-surface-variant/70 italic">Lascia che la penna del cuore scorra sulla carta digitale del Santuario.</p>
                 </div>
@@ -186,8 +300,18 @@ export default function DiaryPage() {
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-secondary block ml-1">Riflessione</label>
+                  <div className="space-y-2 relative">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-secondary block ml-1">Riflessione</label>
+                      <button
+                        type="button"
+                        onClick={toggleListening}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-secondary/10 text-secondary hover:bg-secondary/20'}`}
+                      >
+                        {isListening ? <MicOff className="w-3 h-3" /> : <Mic className="w-3 h-3" />}
+                        {isListening ? 'Ti ascolto...' : 'Dettatura Vocale'}
+                      </button>
+                    </div>
                     <textarea
                       required
                       rows={8}
@@ -201,17 +325,17 @@ export default function DiaryPage() {
                   <div className="pt-4 flex justify-end gap-3">
                     <button
                       type="button"
-                      onClick={() => setIsAddingNote(false)}
+                      onClick={closeModal}
                       className="px-6 py-3 border border-surface-container-high rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-surface transition-all"
                     >
                       Annulla
                     </button>
                     <button
                       type="submit"
-                      disabled={addNoteMutation.isPending}
+                      disabled={addNoteMutation.isPending || updateNoteMutation.isPending}
                       className="px-10 py-3 bg-secondary text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-secondary/90 disabled:opacity-50 transition-all"
                     >
-                      {addNoteMutation.isPending ? 'Salvataggio...' : 'Custodisci Appunto'}
+                      {addNoteMutation.isPending || updateNoteMutation.isPending ? 'Salvataggio...' : (editingNoteId ? 'Aggiorna' : 'Custodisci Nota')}
                     </button>
                   </div>
                 </form>

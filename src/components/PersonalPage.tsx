@@ -189,7 +189,7 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
     if (!drawerCategory) return null;
 
     let items: any[] = [];
-    if (drawerCategory === 'Appunti') {
+    if (drawerCategory === 'Note') {
       items = notes;
     } else if (drawerCategory === 'Segnalibri') {
       items = dbBookmarks;
@@ -208,7 +208,7 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
             {drawerCategory === 'Preferiti' && <Heart className="w-6 h-6 text-rose-500" />}
             {drawerCategory === 'Letti' && <CheckCircle2 className="w-6 h-6 text-green-600" />}
             {drawerCategory === 'Da Leggere' && <Sparkles className="w-6 h-6 text-amber-500" />}
-            {drawerCategory === 'Appunti' && <Database className="w-6 h-6 text-blue-500" />}
+            {drawerCategory === 'Note' && <Database className="w-6 h-6 text-blue-500" />}
             {drawerCategory === 'Segnalibri' && <Bookmark className="w-6 h-6 text-amber-600" />}
             {drawerCategory}
           </h2>
@@ -226,11 +226,11 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
                 key={item.id}
                 onClick={() => {
                   setSelectedDetailItem(item);
-                  setDetailType(drawerCategory === 'Appunti' ? 'note' : (drawerCategory === 'Segnalibri' ? 'bookmark' : 'book'));
+                  setDetailType(drawerCategory === 'Note' ? 'note' : (drawerCategory === 'Segnalibri' ? 'bookmark' : 'book'));
                 }}
                 className="bg-surface-container-lowest border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
               >
-                {drawerCategory === 'Appunti' ? (
+                {drawerCategory === 'Note' ? (
                   <div className="space-y-2">
                     <div className="flex justify-between items-start gap-2">
                       <h4 className="font-bold text-sm text-primary">{item.title}</h4>
@@ -354,9 +354,22 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
                 </>
               )}
               {detailType === 'note' && (
-                <button onClick={() => { onNavigateToDiary(); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
-                  <Database className="w-4 h-4" /> Gestisci in Diario
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      window.speechSynthesis.cancel();
+                      const utterance = new SpeechSynthesisUtterance(item.content);
+                      utterance.rate = 1.2;
+                      window.speechSynthesis.speak(utterance);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-primary/10 text-primary rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2"
+                  >
+                    <Headphones className="w-4 h-4" /> Ascolta Nota
+                  </button>
+                  <button onClick={() => { onNavigateToDiary(); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                    <Database className="w-4 h-4" /> Gestisci in Note
+                  </button>
+                </>
               )}
               {detailType === 'bookmark' && (
                 <button onClick={() => { onNavigateToListen(book.id); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
@@ -493,12 +506,12 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
                     <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Da Leggere</span>
                   </button>
                   <button
-                    onClick={() => { setDrawerCategory('Appunti'); setIsDrawerOpen(true); }}
+                    onClick={() => { setDrawerCategory('Note'); setIsDrawerOpen(true); }}
                     className="bg-surface-container/40 p-4 border rounded-xl text-center hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group"
                   >
                     <Database className="w-5 h-5 text-blue-500 mx-auto mb-1.5 group-hover:scale-110 transition-transform"/>
                     <strong className="text-xl block">{stats.notes}</strong>
-                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Appunti</span>
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Note</span>
                   </button>
                   <button
                     onClick={() => { setDrawerCategory('Segnalibri'); setIsDrawerOpen(true); }}
