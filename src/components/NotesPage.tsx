@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Plus, X, Edit3, Loader2, Volume2, Square, Mic, MicOff, Trash2 } from 'lucide-react';
+import { FileText, Plus, X, Edit3, Loader2, Volume2, Square, Mic, MicOff, Trash2, Sparkles, BookOpen, Clock } from 'lucide-react';
 import { DiaryService, DiaryNote, BookService } from '../utils/database';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -33,6 +33,16 @@ export default function NotesPage() {
     queryFn: () => BookService.getUserReadings(user!.id),
     enabled: !!user,
   });
+
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  React.useEffect(() => {
+    const loadVoices = () => {
+      setVoices(window.speechSynthesis.getVoices());
+    };
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+  }, []);
 
   // Mutations
   const addNoteMutation = useMutation({
@@ -107,11 +117,28 @@ export default function NotesPage() {
   }
 
   // Speech Synthesis
-  const speak = (text: string, id: string) => {
+  const speak = (note: DiaryNote) => {
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+
+    const introText = note.book
+      ? `Nota associata al libro ${note.book.title}. `
+      : "Pensiero libero. ";
+
+    const fullSpeech = `${introText} Titolo: ${note.title}. Contenuto: ${note.content}`;
+
+    const utterance = new SpeechSynthesisUtterance(fullSpeech);
     utterance.rate = 1.2;
-    utterance.onstart = () => setIsSpeaking(id);
+    utterance.lang = 'it-IT';
+
+    const preferred = voices.find(v =>
+      v.lang.startsWith('it') &&
+      (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural')) &&
+      (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('alice'))
+    ) || voices.find(v => v.lang.startsWith('it')) || voices[0];
+
+    if (preferred) utterance.voice = preferred;
+
+    utterance.onstart = () => setIsSpeaking(note.id);
     utterance.onend = () => setIsSpeaking(null);
     utterance.onerror = () => setIsSpeaking(null);
     window.speechSynthesis.speak(utterance);
@@ -179,7 +206,7 @@ export default function NotesPage() {
       <div className="flex justify-between items-center px-1">
         <div className="space-y-1">
           <h1 className="font-serif text-3xl md:text-4xl text-on-surface font-semibold flex items-center gap-3">
-            <FileText className="w-8 h-8 text-primary" /> Note del Santuario
+            <FileText className="w-8 h-8 text-primary" /> Le Tue Note
           </h1>
           <p className="font-sans text-sm text-on-surface-variant/70">Il luogo dove i tuoi pensieri prendono forma tra le pagine.</p>
         </div>
@@ -187,8 +214,34 @@ export default function NotesPage() {
           onClick={() => setIsAddingNote(true)}
           className="flex items-center gap-1.5 px-5 py-2.5 bg-primary text-white rounded-xl font-sans font-bold text-xs uppercase shadow-md transition-all cursor-pointer hover:bg-primary/90"
         >
-          <Plus className="w-4 h-4" /> Nuovo Appunto
+          <Plus className="w-4 h-4" /> Nuova Nota
         </button>
+      </div>
+
+      {/* Guida alle Note */}
+      <div className="bg-secondary/5 border border-secondary/10 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-center">
+        <div className="p-3 bg-white rounded-xl shadow-sm"><Sparkles className="w-6 h-6 text-secondary" /></div>
+        <div className="flex-1 space-y-3">
+          <h4 className="font-serif text-lg font-bold text-secondary">Guida alle Note del Santuario</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="flex gap-2 items-start">
+                <div className="mt-1 w-1.5 h-1.5 bg-secondary rounded-full flex-shrink-0" />
+                <p className="text-[11px] text-on-surface-variant leading-relaxed">**Custodire Intuizioni:** Usa le note per fissare pensieri, citazioni o riflessioni nate durante la lettura o la meditazione.</p>
+             </div>
+             <div className="flex gap-2 items-start">
+                <div className="mt-1 w-1.5 h-1.5 bg-secondary rounded-full flex-shrink-0" />
+                <p className="text-[11px] text-on-surface-variant leading-relaxed">**Connessione Libri:** Puoi legare ogni nota a un'opera specifica della tua libreria per creare un filo diretto tra te e l'autore.</p>
+             </div>
+             <div className="flex gap-2 items-start">
+                <div className="mt-1 w-1.5 h-1.5 bg-secondary rounded-full flex-shrink-0" />
+                <p className="text-[11px] text-on-surface-variant leading-relaxed">**Voce alla Mente:** Sfrutta la dettatura vocale per scrivere senza tastiera e l'ascolto sintetico per riascoltare i tuoi passi.</p>
+             </div>
+             <div className="flex gap-2 items-start">
+                <div className="mt-1 w-1.5 h-1.5 bg-secondary rounded-full flex-shrink-0" />
+                <p className="text-[11px] text-on-surface-variant leading-relaxed">**Sincronizzazione Cloud:** Ogni nota è salvata al sicuro nel tuo profilo e accessibile da qualsiasi tuo dispositivo.</p>
+             </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-8 pb-20">
@@ -200,43 +253,53 @@ export default function NotesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#fcfaf2] rounded-2xl p-8 shadow-lg border-l-[8px] border-secondary border border-surface-container-high/60 relative overflow-hidden book-shadow"
+              className="bg-[#fcfaf2] rounded-3xl p-6 md:p-10 shadow-lg border-l-[12px] border-secondary border border-surface-container-high/60 relative overflow-hidden book-shadow flex flex-col gap-6"
             >
-              <div className="absolute top-6 right-6 flex items-center gap-2">
-                <button
-                   onClick={() => speak(note.content, note.id)}
-                   className={`p-2 rounded-full transition-colors cursor-pointer ${isSpeaking === note.id ? 'text-primary bg-primary/10' : 'text-on-surface-variant/40 hover:text-primary'}`}
-                   title="Ascolta"
-                >
-                  <Volume2 className="w-5 h-5" />
-                </button>
-                {isSpeaking === note.id && (
-                  <button onClick={stopSpeaking} className="p-2 text-rose-500 hover:bg-rose-50 cursor-pointer rounded-full" title="Stop"><Square className="w-4 h-4 fill-current" /></button>
-                )}
-                <button
-                  onClick={() => openEditModal(note)}
-                  className="p-2 text-on-surface-variant/40 hover:text-secondary cursor-pointer transition-colors"
-                  title="Modifica"
-                >
-                  <Edit3 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => { if (confirm('Eliminare questo appunto?')) removeNoteMutation.mutate(note.id); }}
-                  className="p-2 text-on-surface-variant/40 hover:text-rose-500 cursor-pointer transition-colors"
-                  title="Elimina"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="pt-2 space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-[11px] font-sans font-bold text-secondary tracking-widest uppercase">
-                    <span className="italic bg-secondary/5 px-2 py-0.5 rounded">{note.book ? `Libro: ${note.book.title}` : 'Pensiero Libero'}</span>
-                    <span>{new Date(note.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              {/* Header con MetaDati */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-secondary/10 pb-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/10 text-secondary rounded-full font-sans font-bold text-[10px] uppercase tracking-widest">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {note.book ? note.book.title : 'Pensiero Libero'}
                   </div>
-                  <h4 className="font-serif text-2xl text-on-surface font-semibold italic">{note.title}</h4>
+                  <div className="flex items-center gap-1.5 text-on-surface-variant/50 font-sans font-bold text-[9px] uppercase tracking-widest px-1">
+                    <Clock className="w-3 h-3" />
+                    {new Date(note.created_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
                 </div>
-                <div className="notebook-line text-lg text-on-surface-variant/90 font-serif leading-[2.8rem] italic pl-4 border-l-2 border-red-200/50">
+
+                {/* Actions distinte dai metadati */}
+                <div className="flex items-center gap-1 bg-white/50 p-1 rounded-2xl border shadow-sm self-end md:self-auto">
+                  <button
+                    onClick={() => speak(note)}
+                    className={`p-2.5 rounded-xl transition-all cursor-pointer ${isSpeaking === note.id ? 'text-primary bg-primary/10' : 'text-on-surface-variant/60 hover:text-primary hover:bg-primary/5'}`}
+                    title="Ascolta"
+                  >
+                    <Volume2 className="w-5 h-5" />
+                  </button>
+                  {isSpeaking === note.id && (
+                    <button onClick={stopSpeaking} className="p-2.5 text-rose-500 hover:bg-rose-50 cursor-pointer rounded-xl" title="Stop"><Square className="w-5 h-5 fill-current" /></button>
+                  )}
+                  <button
+                    onClick={() => openEditModal(note)}
+                    className="p-2.5 text-on-surface-variant/60 hover:text-secondary hover:bg-secondary/5 cursor-pointer rounded-xl transition-all"
+                    title="Modifica"
+                  >
+                    <Edit3 className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => { if (confirm('Eliminare questa nota?')) removeNoteMutation.mutate(note.id); }}
+                    className="p-2.5 text-on-surface-variant/60 hover:text-rose-500 hover:bg-rose-50 cursor-pointer rounded-xl transition-all"
+                    title="Elimina"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-serif text-2xl md:text-3xl text-on-surface font-semibold italic">{note.title}</h4>
+                <div className="notebook-line text-lg md:text-xl text-on-surface-variant/90 font-serif leading-[2.8rem] md:leading-[3.2rem] italic pl-4 md:pl-6 border-l-2 border-red-200/50">
                   {note.content}
                 </div>
               </div>
@@ -257,12 +320,13 @@ export default function NotesPage() {
       {/* Write Note Modal */}
       <AnimatePresence>
         {isAddingNote && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-center justify-center p-0 md:p-4">
             <motion.div
-              initial={{ scale: 0.96, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.96, opacity: 0 }}
-              className="bg-[#fbf9f6] max-w-2xl w-full rounded-2xl p-6 md:p-10 border border-surface-container-high relative shadow-2xl"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="bg-[#fbf9f6] w-full h-full md:h-auto md:max-w-xl md:rounded-3xl p-6 md:p-10 border-t md:border border-surface-container-high relative shadow-2xl flex flex-col overflow-y-auto"
             >
               <button onClick={closeModal} className="absolute top-6 right-6 p-2 text-on-surface-variant/50 hover:text-on-surface"><X className="w-6 h-6" /></button>
               <div className="space-y-8">
