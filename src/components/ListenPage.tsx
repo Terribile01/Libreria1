@@ -288,7 +288,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
             <div className="flex-1 flex flex-col items-center justify-center py-20 text-primary">
               <Loader2 className="w-10 h-10 animate-spin mb-4" />
               <p className="font-serif italic">
-                {isProcessingPdf ? 'Rù sta sintonizzando il tuo PDF...' : 'Preparando l\'aura di ascolto...'}
+                {isProcessingPdf ? 'Rù sta sintonizzando il tuo file...' : 'Preparando l\'aura di ascolto...'}
               </p>
             </div>
           ) : (
@@ -308,7 +308,7 @@ export default function ListenPage({ tracks, activeTrackId, setActiveTrackId }: 
                 <div className="text-center sm:text-left space-y-2 flex-1">
                   <div className="space-y-1">
                     <span className="px-2 py-0.5 bg-primary/10 text-primary font-sans font-bold text-[9px] tracking-widest uppercase rounded">
-                      {currentReading?.source_type === 'internal' ? 'Lettura Documento' : 'Sintonizzazione Attiva'}
+                      {currentReading?.source_type === 'internal' ? (currentReading.file_path?.toLowerCase().endsWith('.txt') ? 'Lettura Testo' : 'Lettura PDF') : 'Sintonizzazione Attiva'}
                     </span>
                     <h3 className="font-serif text-2xl text-on-surface font-semibold">{activeTrack.title}</h3>
                     <p className="font-sans text-sm text-on-surface-variant/70 italic">di {activeTrack.author}</p>
