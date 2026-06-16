@@ -554,7 +554,14 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
                           <Sparkles className="w-3 h-3" /> Chiedi a Rù
                         </button>
                       )}
-                      {selectedBookDetail.externalUrl && <a href={selectedBookDetail.externalUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline flex items-center gap-1 uppercase tracking-widest font-bold">Leggi Opera <ExternalLink className="w-2.5 h-2.5" /></a>}
+                      {selectedBookDetail.externalUrl && (
+                        <button
+                          onClick={() => onPlayTrack(selectedBookDetail)} // Note: onPlayTrack is actually used for openReader in this context if we wanted, but here let's keep it consistent
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1 uppercase tracking-widest font-bold"
+                        >
+                          Leggi Opera <ExternalLink className="w-2.5 h-2.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 

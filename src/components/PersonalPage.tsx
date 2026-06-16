@@ -9,15 +9,17 @@ import { useAuth } from '../context/AuthContext';
 import { ApiKeyManager, ApiKeyStructure } from '../utils/apiKeys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookService, DiaryService, BookmarkService } from '../utils/database';
+import { Book } from '../types';
 
 interface PersonalPageProps {
   onNavigateToHome: () => void;
   onNavigateToListen: (bookId: string) => void;
   onNavigateToLibrary: () => void;
   onNavigateToDiary: () => void;
+  onNavigateToReader: (book: Book) => void;
 }
 
-export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onNavigateToLibrary, onNavigateToDiary }: PersonalPageProps) {
+export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onNavigateToLibrary, onNavigateToDiary, onNavigateToReader }: PersonalPageProps) {
   const utteranceRef = React.useRef<SpeechSynthesisUtterance | null>(null);
   const [voices, setVoices] = React.useState<SpeechSynthesisVoice[]>([]);
 
@@ -355,7 +357,19 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
             <div className="pt-6 border-t flex flex-wrap gap-3">
               {detailType === 'book' && (
                 <>
-                  <button onClick={() => { onNavigateToLibrary(); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => {
+                      const bookForReader: Book = {
+                        ...item.book,
+                        sourceType: item.source_type,
+                        filePath: item.file_path,
+                        externalUrl: item.external_url || (item.book as any).external_url
+                      };
+                      onNavigateToReader(bookForReader);
+                      setSelectedDetailItem(null);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2"
+                  >
                     <Bookmark className="w-4 h-4" /> Leggi
                   </button>
                   <button onClick={() => { onNavigateToListen(book.id); setSelectedDetailItem(null); }} className="flex-1 px-4 py-2.5 border border-secondary text-secondary rounded-xl text-xs font-bold uppercase flex items-center justify-center gap-2">

@@ -8,15 +8,17 @@ import LibraryPage from './components/LibraryPage';
 import NotesPage from './components/NotesPage';
 import ListenPage from './components/ListenPage';
 import PersonalPage from './components/PersonalPage';
+import ReaderPage from './components/ReaderPage';
 import RuChat from './components/RuChat';
 
 import { INITIAL_BOOKS, INITIAL_AUDIO_TRACKS } from './data';
 import { Book } from './types';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader'>('home');
   const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
   const [activeTrackId, setActiveTrackId] = useState<string>('at-1');
+  const [activeBookForReader, setActiveBookForReader] = useState<Book | null>(null);
 
   // Play track navigation shortcut
   const handlePlayTrackByTitle = (bookTitle: string) => {
@@ -49,6 +51,11 @@ export default function App() {
     setCurrentPage('listen');
   };
 
+  const handleOpenReader = (book: Book) => {
+    setActiveBookForReader(book);
+    setCurrentPage('reader');
+  };
+
   const renderActivePage = () => {
     switch (currentPage) {
       case 'home':
@@ -63,13 +70,14 @@ export default function App() {
         return (
           <SearchPage 
             books={books}
-            onPlayTrack={handlePlayBook}
+            onPlayTrack={handleOpenReader}
           />
         );
       case 'library':
         return (
           <LibraryPage
             onPlayTrack={handlePlayBook}
+            onReadBook={handleOpenReader}
           />
         );
       case 'diary':
@@ -94,8 +102,16 @@ export default function App() {
             }}
             onNavigateToLibrary={() => setCurrentPage('library')}
             onNavigateToDiary={() => setCurrentPage('diary')}
+            onNavigateToReader={handleOpenReader}
           />
         );
+      case 'reader':
+        return activeBookForReader ? (
+          <ReaderPage
+            book={activeBookForReader}
+            onClose={() => setCurrentPage('library')}
+          />
+        ) : null;
       default:
         return <HomePage books={books} onPlayTrack={handlePlayBook} onNavigateToLibrary={() => setCurrentPage('library')} />;
     }

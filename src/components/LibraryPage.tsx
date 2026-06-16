@@ -9,9 +9,10 @@ import { AIProvider } from '../utils/aiProvider';
 
 interface LibraryPageProps {
   onPlayTrack: (book: Book) => void;
+  onReadBook: (book: Book) => void;
 }
 
-export default function LibraryPage({ onPlayTrack }: LibraryPageProps) {
+export default function LibraryPage({ onPlayTrack, onReadBook }: LibraryPageProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Book['status']>('Preferiti');
@@ -60,24 +61,18 @@ export default function LibraryPage({ onPlayTrack }: LibraryPageProps) {
     setSelectedBookDetail(reading);
   };
 
-  const handleReadBook = async (reading: Reading) => {
-    // Check internal file path (reading first, then book catalog)
-    const filePath = reading.file_path || (reading.book as any)?.file_url;
-    // Check external URL (reading first, then book catalog)
-    const externalUrl = reading.external_url || (reading.book as any)?.external_url;
+  const handleReadInternal = (reading: Reading) => {
+    if (!reading.book) return;
 
-    if (reading.source_type === 'internal' && filePath) {
-      try {
-        const signedUrl = await BookService.getFileUrl(filePath);
-        window.open(signedUrl, '_blank');
-      } catch (err: any) {
-        alert("Errore nel recupero del file: " + err.message);
-      }
-    } else if (externalUrl) {
-      window.open(externalUrl, '_blank');
-    } else {
-      alert("Nessuna risorsa digitale disponibile per questo volume.");
-    }
+    // Prepare a complete book object for the reader
+    const bookForReader: Book = {
+      ...reading.book,
+      sourceType: reading.source_type,
+      filePath: reading.file_path,
+      externalUrl: reading.external_url || (reading.book as any).external_url
+    };
+
+    onReadBook(bookForReader);
   };
 
   const tabReadings = readings.filter(r => r.status === activeTab);
@@ -209,7 +204,7 @@ export default function LibraryPage({ onPlayTrack }: LibraryPageProps) {
                 <div className="border-t pt-5 flex flex-wrap gap-3 justify-between items-center">
                    <div className="flex gap-2">
                      <button
-                       onClick={() => handleReadBook(selectedBookDetail)}
+                       onClick={() => handleReadInternal(selectedBookDetail)}
                        className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase flex items-center gap-2 shadow-md hover:bg-primary/90 transition-all"
                      >
                        <BookIcon className="w-4 h-4" /> Leggi
