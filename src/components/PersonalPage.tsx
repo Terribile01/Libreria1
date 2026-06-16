@@ -39,6 +39,7 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [authIsLoading, setAuthIsLoading] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
@@ -435,6 +436,20 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
                   <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-2.5 bg-surface border rounded-xl text-xs" required />
                 </div>
               )}
+
+              {!isRegisterMode && (
+                <div className="flex items-center gap-2 px-1">
+                   <input
+                     type="checkbox"
+                     id="rememberMe"
+                     checked={rememberMe}
+                     onChange={(e) => setRememberMe(e.target.checked)}
+                     className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                   />
+                   <label htmlFor="rememberMe" className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70 cursor-pointer">Ricordami</label>
+                </div>
+              )}
+
               {authError && <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl">{authError}</div>}
               {authSuccess && <div className="p-3 bg-green-50 text-green-700 text-xs rounded-xl">{authSuccess}</div>}
               <button type="submit" disabled={authIsLoading} className="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs uppercase shadow-md disabled:opacity-50">

@@ -9,7 +9,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Initialize only if credentials are present to avoid crash on Vercel initialization
 export const supabase = (supabaseUrl && supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'leggo_auth_token',
+        storage: window.localStorage
+      }
+    })
   : {
       auth: { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) },
       from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: null, error: { message: 'Supabase non configurato' } }), maybeSingle: async () => ({ data: null, error: null }) }) }) })
