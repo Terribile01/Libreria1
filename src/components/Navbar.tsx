@@ -2,8 +2,8 @@ import { User, BookOpen, Search, Library, Headset, ShieldAlert, FileText } from 
 import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
-  currentPage: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile';
-  setCurrentPage: (page: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile') => void;
+  currentPage: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader';
+  setCurrentPage: (page: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader') => void;
 }
 
 export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
@@ -13,6 +13,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
     { id: 'home', label: 'Home', icon: BookOpen },
     { id: 'search', label: 'Ricerca', icon: Search },
     { id: 'library', label: 'La Mia Libreria', icon: Library },
+    { id: 'reader', label: 'Leggi', icon: BookOpen },
     { id: 'diary', label: 'Note', icon: FileText },
     { id: 'listen', label: 'Ascolta', icon: Headset },
   ] as const;

@@ -9,9 +9,10 @@ import { AIProvider } from '../utils/aiProvider';
 
 interface LibraryPageProps {
   onPlayTrack: (book: Book) => void;
+  onReadBook: (bookId: string) => void;
 }
 
-export default function LibraryPage({ onPlayTrack }: LibraryPageProps) {
+export default function LibraryPage({ onPlayTrack, onReadBook }: LibraryPageProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Book['status']>('Preferiti');
@@ -61,20 +62,8 @@ export default function LibraryPage({ onPlayTrack }: LibraryPageProps) {
   };
 
   const handleReadBook = async (reading: Reading) => {
-    // Check internal file path (reading first, then book catalog)
-    const filePath = reading.file_path || (reading.book as any)?.file_url;
-    // Check external URL (reading first, then book catalog)
-    const externalUrl = reading.external_url || (reading.book as any)?.external_url;
-
-    if (reading.source_type === 'internal' && filePath) {
-      try {
-        const signedUrl = await BookService.getFileUrl(filePath);
-        window.open(signedUrl, '_blank');
-      } catch (err: any) {
-        alert("Errore nel recupero del file: " + err.message);
-      }
-    } else if (externalUrl) {
-      window.open(externalUrl, '_blank');
+    if (reading.book) {
+      onReadBook(reading.book.id);
     } else {
       alert("Nessuna risorsa digitale disponibile per questo volume.");
     }
