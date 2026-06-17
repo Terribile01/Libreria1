@@ -1,399 +1,358 @@
-import { useState, useRef } from 'react';
-import { User, BookOpen, Search, Library, Headset, ShieldAlert, FileText, Menu, X, Home, Info, Volume2, Square } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Home,
+  Search,
+  Library,
+  BookOpen,
+  Headset,
+  NotebookPen,
+  Menu,
+  X,
+  User,
+  Info,
+  Volume2,
+  Square
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 
+const INFO_SECTIONS = [
+  {
+    id: 'home',
+    title: "HOME",
+    icon: <Home className="w-6 h-6" />,
+    text: "La tua dashboard personale. Qui trovi un riepilogo delle tue attività, i libri che stai leggendo e gli appunti recenti."
+  },
+  {
+    id: 'search',
+    title: "RICERCA",
+    icon: <Search className="w-6 h-6" />,
+    text: "Esplora nuovi titoli attraverso diversi cataloghi (Liber Liber, Open Library, Google Books). Puoi aggiungere libri al tuo Santuario con un click."
+  },
+  {
+    id: 'library',
+    title: "LIBRERIA",
+    icon: <Library className="w-6 h-6" />,
+    text: "Il tuo archivio personale. Gestisci la tua collezione, organizza le letture e carica i tuoi file PDF o EPUB."
+  },
+  {
+    id: 'reader',
+    title: "LEGGI",
+    icon: <BookOpen className="w-6 h-6" />,
+    text: "L'ambiente di lettura immersivo. Supporta PDF interni e link esterni, con strumenti per prendere appunti e segnalibri automatici."
+  },
+  {
+    id: 'listen',
+    title: "ASCOLTA",
+    icon: <Headset className="w-6 h-6" />,
+    text: "La sezione dedicata agli audiolibri e alla riproduzione vocale. Perfetta per continuare a vivere le tue storie preferite anche in movimento."
+  },
+  {
+    id: 'diary',
+    title: "NOTE",
+    icon: <NotebookPen className="w-6 h-6" />,
+    text: "Il tuo diario letterario. Raccoglie tutti i tuoi pensieri, citazioni e riflessioni sparse tra i vari libri della tua collezione."
+  },
+  {
+    id: 'profile',
+    title: "AREA PERSONALE",
+    icon: <User className="w-6 h-6" />,
+    text: "Gestisci il tuo profilo e le impostazioni. Qui puoi vedere le tue statistiche di lettura e personalizzare la tua esperienza su Rù."
+  }
+];
+
 interface NavbarProps {
-  currentPage: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader';
-  setCurrentPage: (page: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader') => void;
+  currentPage: string;
+  setCurrentPage: (page: any) => void;
 }
 
 export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
-  const { currentUser, isAuthenticated } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [isSpeakingInfo, setIsSpeakingInfo] = useState(false);
+  const { user, profile } = useAuth();
 
-  const navItems = [
+  // Reset menu and info on navigation
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsInfoOpen(false);
+    window.speechSynthesis.cancel();
+    setIsSpeakingInfo(false);
+  }, [currentPage]);
+
+  const toggleInfoSpeech = () => {
+    if (isSpeakingInfo) {
+      window.speechSynthesis.cancel();
+      setIsSpeakingInfo(false);
+    } else {
+      const text = INFO_SECTIONS.map(s => `${s.title}. ${s.text}`).join(' ');
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'it-IT';
+      utterance.rate = 1.1;
+      utterance.onend = () => setIsSpeakingInfo(false);
+      window.speechSynthesis.speak(utterance);
+      setIsSpeakingInfo(true);
+    }
+  };
+
+  const navLinks = [
     { id: 'home', label: 'HOME', icon: Home },
     { id: 'search', label: 'RICERCA', icon: Search },
     { id: 'library', label: 'LIBRERIA', icon: Library },
     { id: 'reader', label: 'LEGGI', icon: BookOpen },
     { id: 'listen', label: 'ASCOLTA', icon: Headset },
-    { id: 'diary', label: 'NOTE', icon: FileText },
-  ] as const;
+    { id: 'diary', label: 'NOTE', icon: NotebookPen },
+  ];
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const displayName = profile?.username || user?.email?.split('@')[0] || 'Utente';
 
-  const infoContent = {
-    title: "GUIDA ALL'USO DI RÙ",
-    sections: [
-      {
-        title: "HOME",
-        content: "La tua scrivania digitale. Qui trovi un riepilogo delle tue attività recenti, i libri che stai leggendo e le ultime note inserite. È il punto di partenza per ogni tua sessione su Rù."
-      },
-      {
-        title: "RICERCA",
-        content: "Esplora il catalogo globale. Puoi cercare libri per titolo, autore o tramite Liber Liber. Una volta trovato un libro di tuo interesse, puoi aggiungerlo alla tua libreria personale."
-      },
-      {
-        title: "LIBRERIA",
-        content: "Il tuo santuario personale. Qui sono custoditi tutti i libri che hai aggiunto. Puoi gestire lo stato di lettura (Da leggere, In lettura, Completato) e accedere rapidamente ai testi."
-      },
-      {
-        title: "LEGGI",
-        content: "L'ambiente di lettura dedicato. Carica i tuoi file PDF o ePub o leggi i testi digitali. Il sistema ricorda automaticamente l'ultima pagina letta per permetterti di riprendere da dove avevi interrotto."
-      },
-      {
-        title: "ASCOLTA",
-        content: "Trasforma la lettura in ascolto. Utilizza la sintesi vocale avanzata per ascoltare i testi dei tuoi libri. Puoi regolare velocità, tono e scegliere la voce che preferisci per un'esperienza personalizzata."
-      },
-      {
-        title: "NOTE",
-        content: "Il tuo diario letterario. Raccogli riflessioni, citazioni e appunti sparsi. Ogni nota può essere collegata a un libro specifico o rimanere un pensiero libero nella tua collezione."
-      },
-      {
-        title: "AREA PERSONALE",
-        content: "Gestione del profilo e impostazioni. Qui puoi personalizzare i tuoi dati, monitorare le statistiche di lettura e gestire le chiavi API per le funzionalità avanzate di intelligenza artificiale."
-      }
-    ]
-  };
-
-  const speakInfo = () => {
-    window.speechSynthesis.cancel();
-
-    const fullText = `${infoContent.title}. ${infoContent.sections.map(s => `${s.title}: ${s.content}`).join(' ')}`;
-    const utterance = new SpeechSynthesisUtterance(fullText);
-    utteranceRef.current = utterance;
-    utterance.lang = 'it-IT';
-    utterance.rate = 1.15;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => { setIsSpeaking(false); utteranceRef.current = null; };
-    utterance.onerror = () => { setIsSpeaking(false); utteranceRef.current = null; };
-
-    const voices = window.speechSynthesis.getVoices();
-    const femaleVoice = voices.find(v =>
-      v.lang.startsWith('it') &&
-      (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('female'))
-    ) || voices.find(v => v.lang.startsWith('it'));
-
-    if (femaleVoice) utterance.voice = femaleVoice;
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const stopSpeaking = () => {
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
+  const handleNavClick = (pageId: string) => {
+    setCurrentPage(pageId);
+    setIsMenuOpen(false);
   };
 
   return (
-    <header className="bg-surface/85 backdrop-blur-md sticky top-0 z-50 shadow-[0_15px_35px_rgba(83,98,79,0.03)] border-b border-surface-container/30 transition-all duration-300">
-      <nav className="flex justify-between items-center px-4 md:px-16 py-4 max-w-7xl mx-auto">
-        {/* Logo - Rù */}
-        <div 
-          onClick={() => setCurrentPage('home')}
-          className="font-serif text-3xl text-primary font-bold tracking-wider cursor-pointer hover:opacity-90 select-none transition-all duration-300 flex items-center gap-1.5"
-        >
-          Rù
-        </div>
-
-        {/* Center Links (Desktop) */}
-        <div className="hidden md:flex items-center gap-10">
-          {navItems.map((item) => {
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setCurrentPage(item.id)}
-                className={`font-sans font-semibold text-sm tracking-widest uppercase transition-all duration-300 relative pb-1 cursor-pointer hover:text-primary ${
-                  isActive ? 'text-primary font-bold' : 'text-on-surface-variant/70'
-                }`}
-              >
-                {item.label}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right Actions */}
-        <div className="flex items-center gap-4">
-          {/* Info Button */}
-          <button
-            onClick={() => setIsInfoOpen(true)}
-            className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-all cursor-pointer"
-            aria-label="Informazioni"
-          >
-            <Info className="w-6 h-6" />
+    <>
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <button onClick={() => handleNavClick('home')} className="flex items-center gap-2 group cursor-pointer">
+            <div className="w-10 h-10 bg-[#5B6854] rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-md">
+              <span className="text-white font-serif text-2xl font-bold italic">Rù</span>
+            </div>
           </button>
 
-          {/* Mobile Quick Actions (Home & Profile) */}
-          <div className="md:hidden flex items-center gap-2">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-1 lg:gap-2">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive = currentPage === link.id;
+              return (
+                <button
+                  key={link.id}
+                  onClick={() => handleNavClick(link.id)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all font-sans font-black text-[11px] tracking-[0.15em] uppercase cursor-pointer ${
+                    isActive
+                      ? 'bg-[#5B6854] text-white shadow-sm'
+                      : 'text-stone-500 hover:bg-stone-100'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-stone-400'}`} />
+                  {link.label}
+                </button>
+              );
+            })}
+
+            <div className="h-6 w-[1px] bg-stone-200 mx-2" />
+
             <button
-              onClick={() => setCurrentPage('home')}
-              className={`p-2 rounded-full transition-all ${currentPage === 'home' ? 'text-primary bg-primary/5' : 'text-on-surface-variant'}`}
+              onClick={() => setIsInfoOpen(true)}
+              className="p-2 text-[#8FA883] hover:bg-[#8FA883]/10 rounded-lg transition-colors cursor-pointer mr-2"
+              title="Guida all'uso"
             >
-              <Home className="w-6 h-6" />
+              <Info className="w-5 h-5" />
             </button>
+
             <button
-              onClick={() => setCurrentPage('profile')}
-              className={`p-1 rounded-full transition-all border-2 ${currentPage === 'profile' ? 'border-primary' : 'border-transparent'}`}
+              onClick={() => handleNavClick('profile')}
+              className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all border cursor-pointer ${
+                currentPage === 'profile'
+                  ? 'bg-stone-50 border-[#5B6854]'
+                  : 'bg-white border-stone-200 hover:border-stone-300'
+              }`}
             >
-              {isAuthenticated && currentUser ? (
-                <img
-                  src={currentUser.avatarUrl}
-                  alt="avatar"
-                  className="w-7 h-7 rounded-full object-cover"
-                />
-              ) : (
-                <User className="w-6 h-6 text-on-surface-variant" />
-              )}
+              <div className="text-right leading-tight">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#5B6854]">Area Personale</p>
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-bold text-stone-900 truncate max-w-[100px] uppercase">
+                    {displayName}
+                  </p>
+                  <p className="text-[8px] font-medium text-stone-400 uppercase tracking-widest mt-0.5">Profilo</p>
+                </div>
+              </div>
+              <div className="w-8 h-8 bg-stone-100 rounded-full flex items-center justify-center overflow-hidden border border-stone-200">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-4 h-4 text-stone-400" />
+                )}
+              </div>
             </button>
           </div>
 
-          {/* Desktop Profile */}
-          <button 
-            onClick={() => setCurrentPage('profile')}
-            className={`hidden md:flex items-center gap-3 px-4 py-2 rounded-xl border transition-all duration-300 cursor-pointer ${
-              currentPage === 'profile'
-                ? 'bg-primary/10 border-primary/20 text-primary shadow-sm'
-                : 'bg-surface-container/40 border-surface-container-high/40 hover:bg-surface-container text-on-surface-variant hover:text-primary'
-            }`}
-            aria-label="Area Personale"
-          >
-            {isAuthenticated && currentUser ? (
-              <>
-                <div className="relative flex items-center justify-center">
-                  <img 
-                    src={currentUser.avatarUrl || "https://images.unsplash.com/photo-1494790108377-be9c29b29330"} 
-                    alt="user avatar" 
-                    referrerPolicy="no-referrer"
-                    className="w-8 h-8 rounded-full object-cover border-2 border-primary/10"
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-surface" />
-                </div>
-                <div className="text-left flex flex-col">
-                  <span className="text-[9px] font-black uppercase tracking-[0.15em] opacity-60 leading-none mb-0.5">Area Personale</span>
-                  <span className="font-serif font-bold text-sm leading-none">
-                    {currentUser.username}
-                  </span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.15em] text-primary leading-none mt-0.5">Profilo</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <User className="w-4 h-4" />
-                <span className="font-sans font-bold text-xs uppercase tracking-wider">
-                  Accedi
-                </span>
-              </>
-            )}
-          </button>
-
-          {/* Hamburger Menu (Mobile Only) */}
-          <button
-            onClick={toggleMenu}
-            className="md:hidden p-2 text-primary hover:bg-primary/5 rounded-xl transition-all"
-            aria-label="Menu"
-          >
-            <Menu className="w-8 h-8" />
-          </button>
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => setIsInfoOpen(true)}
+              className="p-2 text-[#8FA883] cursor-pointer"
+            >
+              <Info className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setIsMenuOpen(true)}
+              className="p-2 text-stone-600 hover:bg-stone-100 rounded-lg cursor-pointer"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* Info Popup */}
-      <AnimatePresence>
-        {isInfoOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setIsInfoOpen(false);
-                stopSpeaking();
-              }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: '100%' }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-full h-full bg-white flex flex-col shadow-2xl overflow-hidden"
-            >
-              {/* Popup Header */}
-              <div className="p-6 bg-primary text-white flex justify-between items-center shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-xl">
-                    <Info className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-serif font-bold text-xl tracking-tight">{infoContent.title}</h3>
-                    <p className="text-[10px] text-white/80 uppercase font-bold tracking-widest">Supporto Tecnico</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!isSpeaking ? (
-                    <button
-                      onClick={speakInfo}
-                      className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all cursor-pointer flex items-center gap-2 px-4"
-                    >
-                      <Volume2 className="w-5 h-5" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Ascolta</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={stopSpeaking}
-                      className="p-2 bg-red-500/80 hover:bg-red-500 rounded-full transition-all cursor-pointer flex items-center gap-2 px-4"
-                    >
-                      <Square className="w-4 h-4 fill-current" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Stop</span>
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setIsInfoOpen(false);
-                      stopSpeaking();
-                    }}
-                    className="p-2 hover:bg-white/20 rounded-full transition-all cursor-pointer"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Popup Content */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-surface-container-low/30 custom-scrollbar">
-                {infoContent.sections.map((section, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <h4 className="font-sans font-black text-primary text-sm tracking-[0.15em] uppercase flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-primary rounded-full" />
-                      {section.title}
-                    </h4>
-                    <p className="font-sans text-on-surface-variant/80 text-[15px] leading-relaxed">
-                      {section.content}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Popup Footer */}
-              <div className="p-6 border-t border-surface-container-high bg-white flex justify-end shrink-0">
-                <button
-                  onClick={() => {
-                    setIsInfoOpen(false);
-                    stopSpeaking();
-                  }}
-                  className="px-8 py-3 bg-primary text-white rounded-xl font-sans font-bold text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg cursor-pointer"
-                >
-                  Ho capito
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Side Drawer (Mobile) */}
+      {/* Mobile Drawer */}
       <AnimatePresence>
         {isMenuOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={toggleMenu}
-              className="fixed inset-0 bg-black/50 z-[60] md:hidden"
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60]"
             />
-
-            {/* Drawer */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-[85%] max-w-sm bg-white z-[70] shadow-[-20px_0_50px_rgba(0,0,0,0.2)] flex flex-col md:hidden"
-              style={{ height: '100dvh' }}
+              className="fixed right-0 top-0 bottom-0 w-[85%] bg-white z-[70] shadow-2xl flex flex-col h-[100dvh]"
             >
-              <div className="p-5 flex justify-between items-center border-b border-surface-container/50 bg-white shrink-0">
-                <span className="font-serif text-xl text-primary font-bold tracking-wider uppercase">Rù Menu</span>
+              <div className="p-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+                <div>
+                  <h2 className="font-sans font-black tracking-tighter text-2xl uppercase text-[#5B6854]">
+                    Rù Menu
+                  </h2>
+                </div>
                 <button
-                  onClick={toggleMenu}
-                  className="p-1.5 text-primary hover:bg-primary/5 rounded-full transition-all"
-                  aria-label="Chiudi menu"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-2 bg-white rounded-xl shadow-sm border border-stone-100 cursor-pointer"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-6 h-6 text-stone-400" />
                 </button>
               </div>
 
-              <div className="flex-1 py-6 px-5 space-y-3 overflow-y-auto bg-[#fdfcfb] custom-scrollbar">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentPage === item.id;
-
+              <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
+                {navLinks.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = currentPage === link.id;
                   return (
                     <button
-                      key={item.id}
-                      onClick={() => {
-                        setCurrentPage(item.id);
-                        toggleMenu();
-                      }}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-300 group ${
+                      key={link.id}
+                      onClick={() => handleNavClick(link.id)}
+                      className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all font-sans font-black text-sm tracking-[0.1em] uppercase cursor-pointer ${
                         isActive
-                          ? 'bg-primary text-white shadow-lg scale-[1.01]'
-                          : 'text-on-surface-variant bg-white border border-surface-container/30 hover:border-primary/30 hover:bg-primary/5'
+                          ? 'bg-[#5B6854] text-white shadow-lg'
+                          : 'text-stone-500 active:bg-stone-50'
                       }`}
                     >
-                      <div className={`p-2 rounded-lg transition-colors ${isActive ? 'bg-white/20' : 'bg-primary/10 text-primary group-hover:bg-primary/20'}`}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <span className={`font-sans text-[11px] uppercase tracking-[0.12em] text-left flex-1 ${isActive ? 'font-black' : 'font-bold'}`}>
-                        {item.label}
-                      </span>
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-stone-400'}`} />
+                      {link.label}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Drawer Footer - Area Personale */}
-              <div
-                onClick={() => {
-                  setCurrentPage('profile');
-                  toggleMenu();
-                }}
-                className="p-6 border-t border-surface-container/30 bg-white shrink-0 cursor-pointer hover:bg-primary/5 transition-all group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-all">
-                    <img
-                      src={isAuthenticated && currentUser ? currentUser.avatarUrl : "https://images.unsplash.com/photo-1494790108377-be9c29b29330"}
-                      alt="avatar"
-                      className="w-full h-full object-cover"
-                    />
+              <div className="p-6 bg-stone-50 border-t border-stone-100">
+                <button
+                  onClick={() => handleNavClick('profile')}
+                  className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-stone-200 shadow-sm cursor-pointer"
+                >
+                  <div className="w-12 h-12 bg-[#EADBC8] rounded-xl flex items-center justify-center overflow-hidden">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-[#5B6854]" />
+                    )}
                   </div>
-                  <div>
-                    <p className="text-[10px] text-on-surface-variant/60 uppercase tracking-[0.2em] font-sans font-black mb-0.5">
-                      AREA PERSONALE
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-stone-400 mb-0.5">Area Personale</p>
+                    <p className="text-sm font-black text-stone-900 truncate uppercase">
+                      {displayName}
                     </p>
-                    <h4 className="font-serif font-bold text-on-surface group-hover:text-primary transition-colors leading-tight">
-                      {isAuthenticated && currentUser ? currentUser.username : "Nuovo Lettore"}
-                    </h4>
-                    <p className="text-[11px] text-primary uppercase tracking-widest font-sans font-bold mt-0.5">
-                      PROFILO
-                    </p>
+                    <p className="text-[10px] font-bold text-[#5B6854] uppercase tracking-widest">Profilo</p>
                   </div>
-                </div>
+                </button>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
-    </header>
+
+      {/* Info Popup Overlay */}
+      <AnimatePresence>
+        {isInfoOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] bg-white flex flex-col h-screen"
+          >
+            {/* Header Superiore */}
+            <div className="shrink-0 flex items-center justify-between p-4 border-b bg-[#5B6854] text-white shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-full">
+                  <Info className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-sans font-black tracking-tighter text-xl uppercase leading-none">
+                    Guida all'uso di Rù
+                  </h2>
+                  <p className="text-[10px] uppercase tracking-widest opacity-70 mt-1">
+                    Supporto Tecnico
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={toggleInfoSpeech}
+                  className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/30 cursor-pointer"
+                >
+                  {isSpeakingInfo ? (
+                    <>
+                      <Square className="w-4 h-4 fill-current" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Stop</span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Ascolta</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setIsInfoOpen(false)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenuto della Guida */}
+            <div className="flex-1 overflow-y-auto bg-white min-h-0">
+              <div className="max-w-3xl mx-auto p-8 md:p-16 space-y-16 pb-32">
+                {INFO_SECTIONS.map((section, idx) => (
+                  <motion.section
+                    key={idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="relative pl-16"
+                  >
+                    <div className="absolute left-0 top-0 p-3.5 bg-stone-50 border border-stone-200 rounded-2xl shadow-sm text-[#5B6854]">
+                      {section.icon}
+                    </div>
+                    <h3 className="font-sans font-black text-2xl mb-4 text-[#5B6854] tracking-tight uppercase">
+                      {section.title}
+                    </h3>
+                    <p className="text-stone-600 leading-relaxed text-lg font-medium">
+                      {section.text}
+                    </p>
+                  </motion.section>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
