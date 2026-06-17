@@ -10,7 +10,7 @@ export default function Footer({ onNavigate }: FooterProps) {
           onClick={() => onNavigate('home')}
           className="w-12 h-12 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 shadow-md border border-stone-200"
         >
-          <img src="/logo.png" alt="Rù Logo" className="w-full h-full object-cover" />
+          <img src="/logo.webp" alt="Rù Logo" className="w-full h-full object-cover" />
         </div>
 
         <nav className="flex flex-wrap justify-center gap-8 md:gap-12 text-sm font-semibold tracking-widest uppercase text-on-surface-variant/70">
