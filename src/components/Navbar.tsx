@@ -158,9 +158,9 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
           {/* Desktop Profile */}
           <button 
             onClick={() => setCurrentPage('profile')}
-            className={`hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all duration-300 cursor-pointer ${
+            className={`hidden md:flex items-center gap-3 px-4 py-2 rounded-xl border transition-all duration-300 cursor-pointer ${
               currentPage === 'profile'
-                ? 'bg-primary/10 border-primary/20 text-primary' 
+                ? 'bg-primary/10 border-primary/20 text-primary shadow-sm'
                 : 'bg-surface-container/40 border-surface-container-high/40 hover:bg-surface-container text-on-surface-variant hover:text-primary'
             }`}
             aria-label="Area Personale"
@@ -172,13 +172,17 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
                     src={currentUser.avatarUrl || "https://images.unsplash.com/photo-1494790108377-be9c29b29330"} 
                     alt="user avatar" 
                     referrerPolicy="no-referrer"
-                    className="w-5 h-5 rounded-full object-cover border border-primary/10"
+                    className="w-8 h-8 rounded-full object-cover border-2 border-primary/10"
                   />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-surface" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-surface" />
                 </div>
-                <span className="hidden sm:inline font-sans font-bold text-xs">
-                  {currentUser.username}
-                </span>
+                <div className="text-left flex flex-col">
+                  <span className="text-[9px] font-black uppercase tracking-[0.15em] opacity-60 leading-none mb-0.5">Area Personale</span>
+                  <span className="font-serif font-bold text-sm leading-none">
+                    {currentUser.username}
+                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.15em] text-primary leading-none mt-0.5">Profilo</span>
+                </div>
               </>
             ) : (
               <>
@@ -204,7 +208,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
       {/* Info Popup */}
       <AnimatePresence>
         {isInfoOpen && (
-          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 pt-20 sm:pt-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -216,10 +220,11 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80dvh] sm:max-h-[90vh]"
+              initial={{ opacity: 0, y: '100%' }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-full h-full bg-white flex flex-col shadow-2xl overflow-hidden"
             >
               {/* Popup Header */}
               <div className="p-6 bg-primary text-white flex justify-between items-center shrink-0">
