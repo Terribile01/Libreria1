@@ -8,9 +8,9 @@ export default function Footer({ onNavigate }: FooterProps) {
       <div className="flex flex-col items-center gap-6 py-16 px-4 max-w-7xl mx-auto">
         <div 
           onClick={() => onNavigate('home')}
-          className="font-serif text-2xl text-primary font-bold tracking-wider cursor-pointer hover:opacity-80 transition-all duration-300"
+          className="w-12 h-12 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 shadow-md border border-stone-200"
         >
-          Rù
+          <img src="/logo.png" alt="Rù Logo" className="w-full h-full object-cover" />
         </div>
 
         <nav className="flex flex-wrap justify-center gap-8 md:gap-12 text-sm font-semibold tracking-widest uppercase text-on-surface-variant/70">

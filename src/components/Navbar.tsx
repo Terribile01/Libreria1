@@ -95,7 +95,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
     }
   };
 
-  const navLinks = [
+  const navLinks: { id: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader', label: string, icon: any }[] = [
     { id: 'home', label: 'HOME', icon: Home },
     { id: 'search', label: 'RICERCA', icon: Search },
     { id: 'library', label: 'LIBRERIA', icon: Library },
@@ -106,7 +106,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
 
   const displayName = profile?.username || user?.email?.split('@')[0] || 'Utente';
 
-  const handleNavClick = (pageId: string) => {
+  const handleNavClick = (pageId: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader') => {
     setCurrentPage(pageId);
     setIsMenuOpen(false);
   };
@@ -116,8 +116,8 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <button onClick={() => handleNavClick('home')} className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-10 h-10 bg-[#5B6854] rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-md">
-              <span className="text-white font-serif text-2xl font-bold italic">Rù</span>
+            <div className="w-10 h-10 rounded-xl overflow-hidden transition-transform group-hover:scale-105 shadow-md border border-stone-200">
+              <img src="/logo.png" alt="Rù Logo" className="w-full h-full object-cover" />
             </div>
           </button>
 
