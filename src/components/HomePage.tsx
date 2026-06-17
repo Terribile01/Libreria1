@@ -98,7 +98,7 @@ export default function HomePage({ books, onPlayTrack, onNavigateToLibrary }: Ho
         <section className="max-w-7xl mx-auto pt-8">
           <div className="bg-primary/5 rounded-3xl p-6 md:p-10 border border-primary/10 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="space-y-2 text-center md:text-left">
-              <h2 className="font-serif text-3xl text-on-surface">Bentornata, <span className="text-primary font-semibold">{profile?.username || 'Vale'}</span></h2>
+              <h2 className="font-serif text-3xl text-on-surface">Bentornata, <span className="text-primary font-semibold">{profile?.username || 'Lettore'}</span></h2>
               <p className="font-sans text-sm text-on-surface-variant/70 italic">Cosa sussurra la tua anima oggi tra queste pagine?</p>
             </div>
 
@@ -300,7 +300,7 @@ export default function HomePage({ books, onPlayTrack, onNavigateToLibrary }: Ho
                 className="flex flex-col items-center gap-2 text-primary pt-6"
               >
                 <CheckCircle2 className="w-10 h-10 stroke-[2.5px]" />
-                <p className="font-sans font-semibold text-base">Benvenuta nel Santuario, Valentina!</p>
+                <p className="font-sans font-semibold text-base">Benvenuta nel Santuario!</p>
                 <p className="font-sans text-xs text-on-surface-variant/70">Ti invieremo presto la nostra prima lettera poetica.</p>
                 <button 
                   onClick={() => setSubscribed(false)}
@@ -371,7 +371,7 @@ export default function HomePage({ books, onPlayTrack, onNavigateToLibrary }: Ho
                   
                   {/* Beautiful Simulated Excerpt for deeper literary magic! */}
                   <div className="bg-surface-container-low/40 p-4 rounded-lg border border-surface-container/30 font-sans text-sm text-on-surface-variant/90 leading-relaxed italic border-l-4 border-primary">
-                    «...la stanza conservava il silenzio delle prime ore del mattino. Tra le scaffalature in legno di larice, i piccoli respiri del chiaroscuro tracciavano un cammino trasparente. Vale guardò fuori dalla finestra: le cime stavano svelando il loro segreto d'argento alla notte appena trascorsa...»
+                    «...la stanza conservava il silenzio delle prime ore del mattino. Tra le scaffalature in legno di larice, i piccoli respiri del chiaroscuro tracciavano un cammino trasparente. Lei guardò fuori dalla finestra: le cime stavano svelando il loro segreto d'argento alla notte appena trascorsa...»
                   </div>
                 </div>
 

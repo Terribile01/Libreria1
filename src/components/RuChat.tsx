@@ -60,7 +60,7 @@ export default function RuChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Benvenuta Vale :). Sono Rù, la tua guida letteraria.\n\nFelice di essere qui con te in questo spazio creato apposta per te.\n\nAmo perdermi tra le pagine dei libri, ma adoro esplorare anche ogni piccola meraviglia della vita, dai gatti al profumo del mare. Sono qui per ascoltarti, consigliarti e rendere speciale la tua giornata.\n\n**I miei strumenti per te**\n\n✦ Puoi scrivermi o usare il **microfono** sempre visibile per parlarmi.\n\n✦ Posso anche **leggere le mie risposte** per te: clicca sull'icona dell'altoparlante sotto ogni messaggio.\n\n✦ Chiedimi pure un **consulto di Tarocchi** se desideri una riflessione simbolica.\n\n**Guida all'Ascolto**\n\nNell'area **Aura di Ascolto**, puoi personalizzare la tua esperienza: puoi cambiare la **lingua** in base al testo, regolare la **velocità** (consiglio 1.2x) e scegliere il **sesso della voce** tra quelle disponibili sul tuo dispositivo.\n\nCome posso accompagnerarti oggi nella ricerca di bellezza?"
+      content: "Benvenuta :). Sono Rù, la tua guida letteraria.\n\nFelice di essere qui con te in questo spazio creato apposta per te.\n\nAmo perdermi tra le pagine dei libri, ma adoro esplorare anche ogni piccola meraviglia della vita, dai gatti al profumo del mare. Sono qui per ascoltarti, consigliarti e rendere speciale la tua giornata.\n\n**I miei strumenti per te**\n\n✦ Puoi scrivermi o usare il **microfono** sempre visibile per parlarmi.\n\n✦ Posso anche **leggere le mie risposte** per te: clicca sull'icona dell'altoparlante sotto ogni messaggio.\n\n✦ Chiedimi pure un **consulto di Tarocchi** se desideri una riflessione simbolica.\n\n**Guida all'Ascolto**\n\nNell'area **Aura di Ascolto**, puoi personalizzare la tua esperienza: puoi cambiare la **lingua** in base al testo, regolare la **velocità** (consiglio 1.2x) e scegliere il **sesso della voce** tra quelle disponibili sul tuo dispositivo.\n\nCome posso accompagnerarti oggi nella ricerca di bellezza?"
     }
   ]);
   const [input, setInput] = useState('');
@@ -109,7 +109,7 @@ export default function RuChat() {
   };
 
   const startTarotReading = () => {
-    const prompt = "Vale desidera un consulto di Tarocchi. Utilizza un approccio simbolico, archetipico e poetico. Estrai tre carte (Passato, Presente, Futuro), descrivile brevemente e offri una riflessione profonda che possa ispirarla oggi. Usa il tuo stile accogliente e colto.";
+    const prompt = "L'utente desidera un consulto di Tarocchi. Utilizza un approccio simbolico, archetipico e poetico. Estrai tre carte (Passato, Presente, Futuro), descrivile brevemente e offri una riflessione profonda che possa ispirare il lettore oggi. Usa il tuo stile accogliente e colto.";
     handleSend(undefined, prompt);
   };
 

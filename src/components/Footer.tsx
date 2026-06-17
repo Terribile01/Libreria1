@@ -91,7 +91,7 @@ export default function Footer({ onNavigate }: FooterProps) {
         {/* Bottom Bar */}
         <div className="mt-20 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 opacity-40 text-[9px] font-bold tracking-[0.4em] uppercase">
           <p>© 2026 Rù Libreria — Tutti i diritti riservati</p>
-          <p>Created with passion for Vale</p>
+          <p>Created with passion</p>
         </div>
       </div>
 
@@ -169,7 +169,7 @@ export default function Footer({ onNavigate }: FooterProps) {
                 <div className="pt-8 border-t border-stone-100 text-center">
                   <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest leading-loose">
                     Ultimo aggiornamento: Ottobre 2023<br />
-                    Rù Libreria Digitale per Vale
+                    Rù Libreria Digitale
                   </p>
                 </div>
               </div>

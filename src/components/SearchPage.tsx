@@ -246,7 +246,7 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
       vibeText: "Desideri esplorare le grandi domande esistenziali, comprendere la natura dell'essere e dell'estetica.",
       presents: {
         title: "L'Orizzonte Invisibile",
-        author: "Elena Valeri",
+        author: "Elena Valli",
         coverUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBdkuYQqwE42bhMaCrxQEGJO21qPLDamQODobpWZXIu_KKp93jMDC-bfl89o1nVK0c87FzbQhlqxjvj-J0skZHBTmEni0qgiQy-aqXCdeXVHqB4iYS6PT9tY9YoEE-kqV2eQGHijewqyh38kVie-tEPMJhluTOCn6KWmp9E8ISCbUY8LbatJtYQa4qhEcaEYysjSvOgsOSqx6JROtNGl-AqT9SuAknMVNe8xf9YrtqvMBd1gjVyaYsryhCP0OIW8iwj9tvOeRH4-U5u",
         quote: "«L'essenziale si nasconde negli interstizi della nostra fretta; solo fermandosi si impara di nuovo a vedere oltre la superficie.»",
         travelDest: "Un viaggio filosofico nel profondo Oriente, ascoltando la voce dei fiumi.",

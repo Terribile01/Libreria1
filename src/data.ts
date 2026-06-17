@@ -170,14 +170,14 @@ export const INITIAL_AUDIO_TRACKS: AudioTrack[] = [
   {
     id: 'at-1',
     title: 'Le Onde del Silenzio',
-    author: 'Elena Vitale',
+    author: 'Elena Valli',
     coverUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAP9GfDoBn_8Rlvt9VYbiVluLz-FkULypIhdr2l1WncnVHfrFn2OaXxVYkIFQ1Zyqsw9m4PrYkfjnouVUWVm1aOeRHgE-cW1-6BuGdgYOeGGqULQc25rm-GC9EssLc5r2qhAjhGiX96DGUTdPkcUloeyXbZE380ZYn4eRXZzTJrubOUoDeynGVq8f-F6qgNC_Xi8eghFDahrkBb_fSwJfiMxdfwKzK1k8oqTA0ZnHqnUqWJqFUo8v9XHhGbBt7-X4a5lGl2RBr67-ym',
     chapter: 'Capitolo IV: La Quiete Prima dell\'Alba',
     chapterIndex: 3,
     durationSeconds: 2695, // 44m 55s approx
     transcript: [
       { time: 0, text: '...il mare non era mai stato così calmo, una distesa d\'argento che rifletteva i sogni di chi ancora non si era svegliato.' },
-      { time: 15, text: 'Elena guardò l\'orizzonte, sentendo il peso delle parole non dette. Era il momento di lasciar andare il passato e abbracciare il silenzio che veniva.' },
+      { time: 15, text: 'Lei guardò l\'orizzonte, sentendo il peso delle parole non dette. Era il momento di lasciar andare il passato e abbracciare il silenzio che veniva.' },
       { time: 42, text: 'Le onde, appena percepibili, sussurravano segreti antichi alle conchiglie dormienti...' },
       { time: 60, text: 'Nessun faro brillava a disturbare la pace dell\'oscurità fusa con l\'acqua. Un respiro immenso e lento.' },
       { time: 90, text: '«Forse», pensò con un sorriso appena accennato, «è in questa assoluta assenza di risposte che risiede la verità.»' }
@@ -246,7 +246,7 @@ export const INITIAL_NOTES: PersonalNote[] = [
 export const SUGGESTIVE_PROFILES = [
   {
     title: "L'Orizzonte Invisibile",
-    author: "Elena Valeri",
+    author: "Elena Valli",
     coverUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBdkuYQqwE42bhMaCrxQEGJO21qPLDamQODobpWZXIu_KKp93jMDC-bfl89o1nVK0c87FzbQhlqxjvj-J0skZHBTmEni0qgiQy-aqXCdeXVHqB4iYS6PT9tY9YoEE-kqV2eQGHijewqyh38kVie-tEPMJhluTOCn6KWmp9E8ISCbUY8LbatJtYQa4qhEcaEYysjSvOgsOSqx6JROtNGl-AqT9SuAknMVNe8xf9YrtqvMBd1gjVyaYsryhCP0OIW8iwj9tvOeRH4-U5u",
     ratingSymbols: 3
   },
