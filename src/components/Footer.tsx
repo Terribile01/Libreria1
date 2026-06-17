@@ -1,8 +1,14 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, ShieldCheck, Lock, Eye, FileText } from 'lucide-react';
+
 interface FooterProps {
   onNavigate: (page: 'home' | 'search' | 'library' | 'listen' | 'profile') => void;
 }
 
 export default function Footer({ onNavigate }: FooterProps) {
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+
   return (
     <footer className="relative w-full mt-48 bg-[#4C6632] text-white">
       {/* Transizione Silhouette */}
@@ -70,8 +76,13 @@ export default function Footer({ onNavigate }: FooterProps) {
             <div className="flex flex-col items-center md:items-end gap-4">
               <h4 className="font-sans font-black text-[10px] tracking-[0.3em] uppercase opacity-50">Supporto</h4>
               <div className="flex flex-col items-center md:items-end gap-3 text-xs font-bold tracking-widest uppercase">
-                <a href="#privacy" className="hover:text-stone-300 transition-colors">Privacy</a>
-                <a href="https://wa.me/393791038253" target="_blank" rel="noopener noreferrer" className="hover:text-stone-300 transition-colors italic">Assistenza Vale</a>
+                <button
+                  onClick={() => setIsPrivacyOpen(true)}
+                  className="hover:text-stone-300 transition-colors cursor-pointer"
+                >
+                  Privacy
+                </button>
+                <a href="https://wa.me/393791038253" target="_blank" rel="noopener noreferrer" className="hover:text-stone-300 transition-colors italic">Assistenza</a>
               </div>
             </div>
           </div>
@@ -86,6 +97,86 @@ export default function Footer({ onNavigate }: FooterProps) {
 
       {/* Grain Overlay opzionale per texture premium */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
+
+      {/* Privacy Policy Modal */}
+      <AnimatePresence>
+        {isPrivacyOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-stone-900/60 backdrop-blur-md"
+            onClick={() => setIsPrivacyOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl max-h-[80vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header Modal */}
+              <div className="p-6 md:p-8 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-[#5B6854]/10 rounded-2xl text-[#5B6854]">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-sans font-black text-xl md:text-2xl tracking-tighter uppercase text-[#5B6854]">Privacy Policy</h2>
+                    <p className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Tutela dei tuoi dati</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsPrivacyOpen(false)}
+                  className="p-2 hover:bg-white rounded-xl shadow-sm border border-stone-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-6 h-6 text-stone-400" />
+                </button>
+              </div>
+
+              {/* Contenuto Scrollabile */}
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 custom-scrollbar">
+                <section className="space-y-4">
+                  <div className="flex items-center gap-3 text-[#5B6854]">
+                    <Lock className="w-5 h-5" />
+                    <h3 className="font-sans font-black text-xs tracking-widest uppercase">Sicurezza dei Dati</h3>
+                  </div>
+                  <p className="text-stone-600 text-sm leading-relaxed font-medium">
+                    I tuoi dati sono protetti tramite crittografia end-to-end. Utilizziamo Supabase per garantire che solo tu possa accedere alle tue note e alla tua libreria personale.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <div className="flex items-center gap-3 text-[#5B6854]">
+                    <Eye className="w-5 h-5" />
+                    <h3 className="font-sans font-black text-xs tracking-widest uppercase">Trasparenza</h3>
+                  </div>
+                  <p className="text-stone-600 text-sm leading-relaxed font-medium">
+                    Non vendiamo né condividiamo i tuoi dati con terze parti. Rù raccoglie solo le informazioni necessarie per sincronizzare i tuoi progressi di lettura su diversi dispositivi.
+                  </p>
+                </section>
+
+                <section className="space-y-4">
+                  <div className="flex items-center gap-3 text-[#5B6854]">
+                    <FileText className="w-5 h-5" />
+                    <h3 className="font-sans font-black text-xs tracking-widest uppercase">I Tuoi Diritti</h3>
+                  </div>
+                  <p className="text-stone-600 text-sm leading-relaxed font-medium">
+                    In qualsiasi momento puoi richiedere l'esportazione o la cancellazione definitiva del tuo account e di tutti i dati associati direttamente dall'area personale.
+                  </p>
+                </section>
+
+                <div className="pt-8 border-t border-stone-100 text-center">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest leading-loose">
+                    Ultimo aggiornamento: Ottobre 2023<br />
+                    Rù Libreria Digitale per Vale
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </footer>
   );
 }
