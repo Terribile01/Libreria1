@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -22,6 +22,11 @@ export default function App() {
   const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
   const [activeTrackId, setActiveTrackId] = useState<string>('at-1');
   const [activeReaderBookId, setActiveReaderBookId] = useState<string | null>(null);
+
+  // Reset scroll on page change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentPage]);
 
   // Play track navigation shortcut
   const handlePlayTrackByTitle = (bookTitle: string) => {
@@ -157,7 +162,7 @@ export default function App() {
         }}
       />
 
-      <main className="flex-grow pt-8 pb-20 md:pb-8">
+      <main className="flex-grow pt-16 pb-20 md:pb-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
