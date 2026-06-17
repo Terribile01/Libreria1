@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { User, BookOpen, Search, Library, Headset, ShieldAlert, FileText, Menu, X, Home } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { User, BookOpen, Search, Library, Headset, ShieldAlert, FileText, Menu, X, Home, Info, Volume2, Square } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -11,17 +11,82 @@ interface NavbarProps {
 export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
   const { currentUser, isAuthenticated } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const navItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'search', label: 'Ricerca', icon: Search },
-    { id: 'library', label: 'La Mia Libreria', icon: Library },
-    { id: 'reader', label: 'Leggi', icon: BookOpen },
-    { id: 'diary', label: 'Note', icon: FileText },
-    { id: 'listen', label: 'Ascolta', icon: Headset },
+    { id: 'home', label: 'HOME', icon: Home },
+    { id: 'search', label: 'RICERCA', icon: Search },
+    { id: 'library', label: 'LIBRERIA', icon: Library },
+    { id: 'reader', label: 'LEGGI', icon: BookOpen },
+    { id: 'listen', label: 'ASCOLTA', icon: Headset },
+    { id: 'diary', label: 'NOTE', icon: FileText },
   ] as const;
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const infoContent = {
+    title: "GUIDA ALL'USO DI RÙ",
+    sections: [
+      {
+        title: "HOME",
+        content: "La tua scrivania digitale. Qui trovi un riepilogo delle tue attività recenti, i libri che stai leggendo e le ultime note inserite. È il punto di partenza per ogni tua sessione su Rù."
+      },
+      {
+        title: "RICERCA",
+        content: "Esplora il catalogo globale. Puoi cercare libri per titolo, autore o tramite Liber Liber. Una volta trovato un libro di tuo interesse, puoi aggiungerlo alla tua libreria personale."
+      },
+      {
+        title: "LIBRERIA",
+        content: "Il tuo santuario personale. Qui sono custoditi tutti i libri che hai aggiunto. Puoi gestire lo stato di lettura (Da leggere, In lettura, Completato) e accedere rapidamente ai testi."
+      },
+      {
+        title: "LEGGI",
+        content: "L'ambiente di lettura dedicato. Carica i tuoi file PDF o ePub o leggi i testi digitali. Il sistema ricorda automaticamente l'ultima pagina letta per permetterti di riprendere da dove avevi interrotto."
+      },
+      {
+        title: "ASCOLTA",
+        content: "Trasforma la lettura in ascolto. Utilizza la sintesi vocale avanzata per ascoltare i testi dei tuoi libri. Puoi regolare velocità, tono e scegliere la voce che preferisci per un'esperienza personalizzata."
+      },
+      {
+        title: "NOTE",
+        content: "Il tuo diario letterario. Raccogli riflessioni, citazioni e appunti sparsi. Ogni nota può essere collegata a un libro specifico o rimanere un pensiero libero nella tua collezione."
+      },
+      {
+        title: "AREA PERSONALE",
+        content: "Gestione del profilo e impostazioni. Qui puoi personalizzare i tuoi dati, monitorare le statistiche di lettura e gestire le chiavi API per le funzionalità avanzate di intelligenza artificiale."
+      }
+    ]
+  };
+
+  const speakInfo = () => {
+    window.speechSynthesis.cancel();
+
+    const fullText = `${infoContent.title}. ${infoContent.sections.map(s => `${s.title}: ${s.content}`).join(' ')}`;
+    const utterance = new SpeechSynthesisUtterance(fullText);
+    utteranceRef.current = utterance;
+    utterance.lang = 'it-IT';
+    utterance.rate = 1.15;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => { setIsSpeaking(false); utteranceRef.current = null; };
+    utterance.onerror = () => { setIsSpeaking(false); utteranceRef.current = null; };
+
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(v =>
+      v.lang.startsWith('it') &&
+      (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('female'))
+    ) || voices.find(v => v.lang.startsWith('it'));
+
+    if (femaleVoice) utterance.voice = femaleVoice;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
 
   return (
     <header className="bg-surface/85 backdrop-blur-md sticky top-0 z-50 shadow-[0_15px_35px_rgba(83,98,79,0.03)] border-b border-surface-container/30 transition-all duration-300">
@@ -57,6 +122,15 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
 
         {/* Right Actions */}
         <div className="flex items-center gap-4">
+          {/* Info Button */}
+          <button
+            onClick={() => setIsInfoOpen(true)}
+            className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-all cursor-pointer"
+            aria-label="Informazioni"
+          >
+            <Info className="w-6 h-6" />
+          </button>
+
           {/* Mobile Quick Actions (Home & Profile) */}
           <div className="md:hidden flex items-center gap-2">
             <button
@@ -127,6 +201,99 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
         </div>
       </nav>
 
+      {/* Info Popup */}
+      <AnimatePresence>
+        {isInfoOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsInfoOpen(false);
+                stopSpeaking();
+              }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* Popup Header */}
+              <div className="p-6 bg-primary text-white flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <Info className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-xl tracking-tight">{infoContent.title}</h3>
+                    <p className="text-[10px] text-white/80 uppercase font-bold tracking-widest">Supporto Tecnico</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {!isSpeaking ? (
+                    <button
+                      onClick={speakInfo}
+                      className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-all cursor-pointer flex items-center gap-2 px-4"
+                    >
+                      <Volume2 className="w-5 h-5" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Ascolta</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={stopSpeaking}
+                      className="p-2 bg-red-500/80 hover:bg-red-500 rounded-full transition-all cursor-pointer flex items-center gap-2 px-4"
+                    >
+                      <Square className="w-4 h-4 fill-current" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Stop</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setIsInfoOpen(false);
+                      stopSpeaking();
+                    }}
+                    className="p-2 hover:bg-white/20 rounded-full transition-all cursor-pointer"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Popup Content */}
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-surface-container-low/30 custom-scrollbar">
+                {infoContent.sections.map((section, idx) => (
+                  <div key={idx} className="space-y-2">
+                    <h4 className="font-sans font-black text-primary text-sm tracking-[0.15em] uppercase flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                      {section.title}
+                    </h4>
+                    <p className="font-sans text-on-surface-variant/80 text-[15px] leading-relaxed">
+                      {section.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Popup Footer */}
+              <div className="p-6 border-t border-surface-container-high bg-white flex justify-end shrink-0">
+                <button
+                  onClick={() => {
+                    setIsInfoOpen(false);
+                    stopSpeaking();
+                  }}
+                  className="px-8 py-3 bg-primary text-white rounded-xl font-sans font-bold text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg cursor-pointer"
+                >
+                  Ho capito
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Side Drawer (Mobile) */}
       <AnimatePresence>
         {isMenuOpen && (
@@ -150,7 +317,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               style={{ height: '100dvh' }}
             >
               <div className="p-5 flex justify-between items-center border-b border-surface-container/50 bg-white shrink-0">
-                <span className="font-serif text-xl text-primary font-bold tracking-wider">Menu</span>
+                <span className="font-serif text-xl text-primary font-bold tracking-wider uppercase">Rù Menu</span>
                 <button
                   onClick={toggleMenu}
                   className="p-1.5 text-primary hover:bg-primary/5 rounded-full transition-all"
@@ -189,10 +356,16 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
                 })}
               </div>
 
-              {/* Drawer Footer */}
-              <div className="p-6 border-t border-surface-container/30 bg-white shrink-0">
+              {/* Drawer Footer - Area Personale */}
+              <div
+                onClick={() => {
+                  setCurrentPage('profile');
+                  toggleMenu();
+                }}
+                className="p-6 border-t border-surface-container/30 bg-white shrink-0 cursor-pointer hover:bg-primary/5 transition-all group"
+              >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-all">
                     <img
                       src={isAuthenticated && currentUser ? currentUser.avatarUrl : "https://images.unsplash.com/photo-1494790108377-be9c29b29330"}
                       alt="avatar"
@@ -200,11 +373,14 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
                     />
                   </div>
                   <div>
-                    <h4 className="font-serif font-bold text-on-surface">
+                    <p className="text-[10px] text-on-surface-variant/60 uppercase tracking-[0.2em] font-sans font-black mb-0.5">
+                      AREA PERSONALE
+                    </p>
+                    <h4 className="font-serif font-bold text-on-surface group-hover:text-primary transition-colors leading-tight">
                       {isAuthenticated && currentUser ? currentUser.username : "Nuovo Lettore"}
                     </h4>
-                    <p className="text-xs text-on-surface-variant/60 uppercase tracking-widest font-sans font-bold">
-                      {isAuthenticated && currentUser ? currentUser.role : "Santuario Digitale"}
+                    <p className="text-[11px] text-primary uppercase tracking-widest font-sans font-bold mt-0.5">
+                      PROFILO
                     </p>
                   </div>
                 </div>
