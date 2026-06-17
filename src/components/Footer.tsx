@@ -8,7 +8,7 @@ export default function Footer({ onNavigate }: FooterProps) {
       <div className="flex flex-col items-center gap-6 py-16 px-4 max-w-7xl mx-auto">
         <div 
           onClick={() => onNavigate('home')}
-          className="w-24 h-24 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 shadow-md border border-stone-200"
+          className="w-72 h-72 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-all duration-300 shadow-md border border-stone-200"
         >
           <img src="/logo.webp" alt="Rù Logo" className="w-full h-full object-cover" />
         </div>
