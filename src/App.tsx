@@ -184,10 +184,7 @@ export default function App() {
         }}
       />
 
-      <main
-        className="flex-grow pb-20 md:pb-8"
-        style={{ paddingTop: 'clamp(3rem, 8vh, 6rem)' }}
-      >
+      <main className="flex-grow pb-20 md:pb-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
