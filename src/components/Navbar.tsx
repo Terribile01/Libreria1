@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
+import logo from '../assets/logo.png';
 
 const INFO_SECTIONS = [
   {
@@ -95,7 +96,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
     }
   };
 
-  const navLinks = [
+  const navLinks: { id: 'home' | 'search' | 'library' | 'reader' | 'listen' | 'diary'; label: string; icon: any }[] = [
     { id: 'home', label: 'HOME', icon: Home },
     { id: 'search', label: 'RICERCA', icon: Search },
     { id: 'library', label: 'LIBRERIA', icon: Library },
@@ -106,7 +107,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
 
   const displayName = profile?.username || user?.email?.split('@')[0] || 'Utente';
 
-  const handleNavClick = (pageId: string) => {
+  const handleNavClick = (pageId: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader') => {
     setCurrentPage(pageId);
     setIsMenuOpen(false);
   };
@@ -115,10 +116,8 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => handleNavClick('home')} className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-10 h-10 bg-[#5B6854] rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 shadow-md">
-              <span className="text-white font-serif text-2xl font-bold italic">Rù</span>
-            </div>
+          <button onClick={() => handleNavClick('home')} className="flex items-center gap-2 group cursor-pointer h-14">
+            <img src={logo} alt="Rù Logo" className="h-full w-auto object-contain transition-transform group-hover:scale-105" />
           </button>
 
           {/* Desktop Navigation */}
@@ -142,19 +141,9 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               );
             })}
 
-            <div className="h-6 w-[1px] bg-stone-200 mx-2" />
-
-            <button
-              onClick={() => setIsInfoOpen(true)}
-              className="p-2 text-[#8FA883] hover:bg-[#8FA883]/10 rounded-lg transition-colors cursor-pointer mr-2"
-              title="Guida all'uso"
-            >
-              <Info className="w-5 h-5" />
-            </button>
-
             <button
               onClick={() => handleNavClick('profile')}
-              className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all border cursor-pointer ${
+              className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all border cursor-pointer ml-1 ${
                 currentPage === 'profile'
                   ? 'bg-stone-50 border-[#5B6854]'
                   : 'bg-white border-stone-200 hover:border-stone-300'
@@ -175,6 +164,16 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
                   <User className="w-4 h-4 text-stone-400" />
                 )}
               </div>
+            </button>
+
+            <div className="h-6 w-[1px] bg-stone-200 mx-1 lg:mx-2" />
+
+            <button
+              onClick={() => setIsInfoOpen(true)}
+              className="p-2 text-[#8FA883] hover:bg-[#8FA883]/10 rounded-lg transition-colors cursor-pointer"
+              title="Guida all'uso"
+            >
+              <Info className="w-5 h-5" />
             </button>
           </div>
 
@@ -247,25 +246,19 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
                     </button>
                   );
                 })}
-              </div>
 
-              <div className="p-6 bg-stone-50 border-t border-stone-100">
                 <button
                   onClick={() => handleNavClick('profile')}
-                  className="w-full flex items-center gap-4 p-5 bg-white rounded-2xl border border-stone-200 shadow-sm cursor-pointer"
+                  className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all font-sans font-black text-sm tracking-[0.1em] uppercase cursor-pointer ${
+                    currentPage === 'profile'
+                      ? 'bg-[#5B6854] text-white shadow-lg'
+                      : 'text-stone-500 active:bg-stone-50'
+                  }`}
                 >
-                  <div className="w-12 h-12 bg-[#EADBC8] rounded-xl flex items-center justify-center overflow-hidden">
-                    {profile?.avatar_url ? (
-                      <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-6 h-6 text-[#5B6854]" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-base font-black text-stone-900 truncate uppercase tracking-wide">
-                      {displayName}
-                    </p>
-                    <p className="text-[10px] font-black text-[#5B6854] uppercase tracking-[0.2em] mt-1">PROFILO</p>
+                  <User className={`w-5 h-5 ${currentPage === 'profile' ? 'text-white' : 'text-stone-400'}`} />
+                  <div className="text-left leading-tight">
+                    <p className="truncate max-w-[200px] font-black">{displayName}</p>
+                    <p className={`text-[9px] tracking-[0.2em] font-bold mt-0.5 ${currentPage === 'profile' ? 'text-white/70' : 'text-[#5B6854]'}`}>PROFILO</p>
                   </div>
                 </button>
               </div>
