@@ -115,15 +115,13 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button onClick={() => handleNavClick('home')} className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-10 h-10 rounded-xl overflow-hidden transition-transform group-hover:scale-105 shadow-md border border-stone-200">
-              <img src="/logo.webp" alt="Rù Logo" className="w-full h-full object-cover" />
-            </div>
+        <div className="max-w-7xl mx-auto px-[20px] md:px-10 h-[75px] md:h-[85px] flex items-center justify-between gap-[24px] md:gap-[35px]">
+          <button onClick={() => handleNavClick('home')} className="flex items-center group cursor-pointer shrink-0">
+            <img src="/logo.webp" alt="Rù Logo" className="h-[55px] md:h-[60px] w-auto object-contain transition-transform group-hover:scale-105" />
           </button>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1 lg:gap-2">
+          <div className="hidden md:flex items-center gap-2 lg:gap-3">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = currentPage === link.id;

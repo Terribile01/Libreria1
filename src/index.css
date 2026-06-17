@@ -28,12 +28,12 @@
 }
 
 :root {
-  --header-height: 120px;
+  --header-height: 100px;
 }
 
 @media (max-width: 768px) {
   :root {
-    --header-height: 100px;
+    --header-height: 85px;
   }
 }
 
