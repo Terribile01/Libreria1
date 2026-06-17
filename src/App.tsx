@@ -19,13 +19,16 @@ import { useAuth } from './context/AuthContext';
 export default function App() {
   const { user, isAuthenticated } = useAuth();
   const [currentPage, setCurrentPage] = useState<'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader'>('home');
+
+  const pagesOrder: Array<typeof currentPage> = ['home', 'search', 'library', 'reader', 'listen', 'diary', 'profile'];
+
   const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
   const [activeTrackId, setActiveTrackId] = useState<string>('at-1');
   const [activeReaderBookId, setActiveReaderBookId] = useState<string | null>(null);
 
-  // Reset scroll on page change
+  // Reset scroll on page change (Forced)
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentPage]);
 
   // Play track navigation shortcut
@@ -66,6 +69,25 @@ export default function App() {
   };
 
   // Logic for opening Reader from Menu
+  const handleNextPage = () => {
+    const currentIndex = pagesOrder.indexOf(currentPage);
+    if (currentIndex < pagesOrder.length - 1) {
+      const nextPage = pagesOrder[currentIndex + 1];
+      if (nextPage === 'reader') {
+        handleOpenReaderFromMenu();
+      } else {
+        setCurrentPage(nextPage);
+      }
+    }
+  };
+
+  const handlePrevPage = () => {
+    const currentIndex = pagesOrder.indexOf(currentPage);
+    if (currentIndex > 0) {
+      setCurrentPage(pagesOrder[currentIndex - 1]);
+    }
+  };
+
   const handleOpenReaderFromMenu = async () => {
     if (!isAuthenticated || !user) {
       setCurrentPage('reader');
@@ -162,14 +184,34 @@ export default function App() {
         }}
       />
 
-      <main className="flex-grow pt-16 pb-20 md:pb-8">
+      <main
+        className="flex-grow pb-20 md:pb-8"
+        style={{ paddingTop: 'clamp(3rem, 8vh, 6rem)' }}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            drag="x"
+            dragDirectionLock
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.05}
+            onDragEnd={(_, info) => {
+              const threshold = 80;
+              // If it's the reader page, we might want to be careful with global swipes
+              // but for now we follow the "sfogliare le sezioni" requirement
+              if (Math.abs(info.offset.x) > Math.abs(info.offset.y)) {
+                if (info.offset.x < -threshold) {
+                  handleNextPage();
+                } else if (info.offset.x > threshold) {
+                  handlePrevPage();
+                }
+              }
+            }}
+            className="w-full"
           >
             {renderActivePage()}
           </motion.div>

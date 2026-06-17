@@ -309,7 +309,7 @@ export default function SearchPage({ books, onPlayTrack }: SearchPageProps) {
       transition={{ duration: 0.5 }}
       className="max-w-7xl mx-auto px-4 md:px-16 space-y-16"
     >
-      <div className="space-y-2 text-center md:text-left">
+      <div className="space-y-2 text-center md:text-left pt-6 md:pt-10">
         <h1 className="font-serif text-3xl md:text-4xl text-on-surface font-semibold">Esplora la Galleria</h1>
         <p className="font-sans text-sm text-on-surface-variant/70">Cerca tra i tuoi libri, naviga per categoria o scopri un suggerimento personalizzato.</p>
       </div>
