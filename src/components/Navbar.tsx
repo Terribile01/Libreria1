@@ -62,8 +62,8 @@ const INFO_SECTIONS = [
 ];
 
 interface NavbarProps {
-  currentPage: string;
-  setCurrentPage: (page: any) => void;
+  currentPage: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader';
+  setCurrentPage: (page: 'home' | 'search' | 'library' | 'diary' | 'listen' | 'profile' | 'reader') => void;
 }
 
 export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
@@ -161,15 +161,14 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               }`}
             >
               <div className="text-right leading-tight">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#5B6854]">Area Personale</p>
                 <div className="flex flex-col">
-                  <p className="text-[10px] font-bold text-stone-900 truncate max-w-[100px] uppercase">
+                  <p className="text-[11px] font-black text-stone-900 truncate max-w-[120px] uppercase tracking-wider">
                     {displayName}
                   </p>
-                  <p className="text-[8px] font-medium text-stone-400 uppercase tracking-widest mt-0.5">Profilo</p>
+                  <p className="text-[9px] font-bold text-[#5B6854] uppercase tracking-[0.2em] mt-0.5">PROFILO</p>
                 </div>
               </div>
-              <div className="w-8 h-8 bg-stone-100 rounded-full flex items-center justify-center overflow-hidden border border-stone-200">
+              <div className="w-9 h-9 bg-stone-100 rounded-full flex items-center justify-center overflow-hidden border border-stone-200">
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -253,7 +252,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               <div className="p-6 bg-stone-50 border-t border-stone-100">
                 <button
                   onClick={() => handleNavClick('profile')}
-                  className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl border border-stone-200 shadow-sm cursor-pointer"
+                  className="w-full flex items-center gap-4 p-5 bg-white rounded-2xl border border-stone-200 shadow-sm cursor-pointer"
                 >
                   <div className="w-12 h-12 bg-[#EADBC8] rounded-xl flex items-center justify-center overflow-hidden">
                     {profile?.avatar_url ? (
@@ -263,11 +262,10 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-stone-400 mb-0.5">Area Personale</p>
-                    <p className="text-sm font-black text-stone-900 truncate uppercase">
+                    <p className="text-base font-black text-stone-900 truncate uppercase tracking-wide">
                       {displayName}
                     </p>
-                    <p className="text-[10px] font-bold text-[#5B6854] uppercase tracking-widest">Profilo</p>
+                    <p className="text-[10px] font-black text-[#5B6854] uppercase tracking-[0.2em] mt-1">PROFILO</p>
                   </div>
                 </button>
               </div>

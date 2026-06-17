@@ -227,7 +227,7 @@ export default function PersonalPage({ onNavigateToHome, onNavigateToListen, onN
           </button>
         </div>
 
-        <div className="space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-4 max-h-[calc(100vh-var(--header-height)-40px)] overflow-y-auto pr-2 custom-scrollbar">
           {items.length === 0 ? (
             <p className="text-center py-10 text-on-surface-variant italic">Nessun elemento in questa categoria.</p>
           ) : (
