@@ -116,7 +116,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-[20px] md:px-10 h-[75px] md:h-[85px] flex items-center justify-between gap-[24px] md:gap-[35px]">
           <button onClick={() => handleNavClick('home')} className="flex items-center group cursor-pointer shrink-0">
-            <img src="/logo.webp" alt="Rù Logo" className="h-[35px] md:h-[40px] w-auto object-contain transition-transform group-hover:scale-105" />
+            <img src="/logo.webp" alt="Rù Logo" className="h-[100px] md:h-[100px] w-auto object-contain transition-transform group-hover:scale-105" />
           </button>
 
           {/* Desktop Navigation */}
