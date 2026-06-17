@@ -204,7 +204,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
       {/* Info Popup */}
       <AnimatePresence>
         {isInfoOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 pt-20 sm:pt-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -219,7 +219,7 @@ export default function Navbar({ currentPage, setCurrentPage }: NavbarProps) {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80dvh] sm:max-h-[90vh]"
             >
               {/* Popup Header */}
               <div className="p-6 bg-primary text-white flex justify-between items-center shrink-0">
