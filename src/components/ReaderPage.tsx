@@ -378,7 +378,20 @@ export default function ReaderPage({ bookId, onNavigateToLibrary }: ReaderPagePr
               <p className="font-serif italic">Caricamento del volume...</p>
             </div>
           ) : (
-            <div className="relative shadow-2xl bg-white min-h-full w-full max-w-4xl overflow-hidden flex flex-col">
+            <motion.div
+              key={`${bookId}-${currentPage}`}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.1}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -50) handleNextPage();
+                else if (info.offset.x > 50) handlePrevPage();
+              }}
+              className="relative shadow-2xl bg-white min-h-full w-full max-w-4xl overflow-hidden flex flex-col cursor-grab active:cursor-grabbing"
+            >
               {readerMode === 'pdf' ? (
                 <canvas ref={canvasRef} className="max-w-full h-auto mx-auto" />
               ) : (
@@ -387,18 +400,18 @@ export default function ReaderPage({ bookId, onNavigateToLibrary }: ReaderPagePr
                 </div>
               )}
 
-              {/* Invisible touch areas for navigation */}
+              {/* Invisible touch areas for navigation - Desktop legacy support */}
               <div
-                className="absolute inset-y-0 left-0 w-20 cursor-w-resize z-10"
+                className="absolute inset-y-0 left-0 w-20 cursor-w-resize z-10 hidden md:block"
                 onClick={handlePrevPage}
                 title="Pagina precedente"
               />
               <div
-                className="absolute inset-y-0 right-0 w-20 cursor-e-resize z-10"
+                className="absolute inset-y-0 right-0 w-20 cursor-e-resize z-10 hidden md:block"
                 onClick={handleNextPage}
                 title="Pagina successiva"
               />
-            </div>
+            </motion.div>
           )}
         </div>
 
