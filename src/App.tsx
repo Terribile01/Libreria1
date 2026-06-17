@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { useSwipeable } from 'react-swipeable';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './components/HomePage';
@@ -171,8 +172,18 @@ export default function App() {
     }
   };
 
+  const handlers = useSwipeable({
+    onSwipedLeft: () => handleNextPage(),
+    onSwipedRight: () => handlePrevPage(),
+    preventScrollOnSwipe: true,
+    trackMouse: true
+  });
+
   return (
-    <div className="flex flex-col min-h-screen bg-surface selection:bg-primary-fixed/60 selection:text-primary">
+    <div
+      {...handlers}
+      className="flex flex-col min-h-screen bg-surface selection:bg-primary-fixed/60 selection:text-primary"
+    >
       <Navbar 
         currentPage={currentPage}
         setCurrentPage={(page) => {
@@ -184,7 +195,7 @@ export default function App() {
         }}
       />
 
-      <main className="flex-grow pb-20 md:pb-8">
+      <main className="flex-grow pb-20 md:pb-8 layout-wrapper">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
@@ -192,22 +203,6 @@ export default function App() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            drag="x"
-            dragDirectionLock
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.05}
-            onDragEnd={(_, info) => {
-              const threshold = 80;
-              // If it's the reader page, we might want to be careful with global swipes
-              // but for now we follow the "sfogliare le sezioni" requirement
-              if (Math.abs(info.offset.x) > Math.abs(info.offset.y)) {
-                if (info.offset.x < -threshold) {
-                  handleNextPage();
-                } else if (info.offset.x > threshold) {
-                  handlePrevPage();
-                }
-              }
-            }}
             className="w-full"
           >
             {renderActivePage()}

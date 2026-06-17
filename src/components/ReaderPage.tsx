@@ -274,7 +274,7 @@ export default function ReaderPage({ bookId, onNavigateToLibrary }: ReaderPagePr
   }
 
   return (
-    <div className={`flex flex-col h-[calc(100vh-120px)] ${isFullScreen ? 'fixed inset-0 z-[100] bg-surface h-screen' : ''}`}>
+    <div className={`flex flex-col h-[calc(100vh-var(--header-height))] ${isFullScreen ? 'fixed inset-0 z-[100] bg-surface h-screen' : ''}`}>
       {/* Reader Toolbar */}
       <div className="bg-white border-b border-surface-container px-4 py-3 flex items-center justify-between shadow-sm z-10">
         <div className="flex items-center gap-4">
