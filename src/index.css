@@ -34,6 +34,13 @@ body {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  padding-top: 120px !important; /* Valore per Desktop */
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-top: 80px !important; /* Valore per Mobile */
+  }
 }
 
 .notebook-line {
